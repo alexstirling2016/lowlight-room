@@ -207,7 +207,7 @@ details.desc p{white-space:pre-line;color:var(--muted);max-width:64ch;margin:.5r
 .row .rl b{font-weight:400;color:var(--ink)}
 .row .rl em{font:normal .78rem var(--mono);color:var(--muted)}
 .row i{display:block;height:.6rem;background:var(--bar);border-radius:0 4px 4px 0}
-.row:hover i,.row:focus-visible i{background:var(--tape)}
+.row:hover i,.row:focus-visible i,.row.sel i{background:var(--tape)}
 .row:hover b{text-decoration:underline;text-decoration-color:var(--tape)}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(8rem,1fr));gap:1rem;margin:1.6rem 0}
 .stat b{display:block;font:400 2rem/1 var(--display);font-variant-numeric:tabular-nums}
@@ -279,7 +279,7 @@ function setMixes(list) {
   list.sort(function (a, b) { return String(b.published || '').localeCompare(String(a.published || '')); });
   S.mixes = list; S.bySlug = {};
   list.forEach(function (m, i) { m._i = i; S.bySlug[m.slug] = m; m._end = mixEnd(m); m._hay = squashHay(m); });
-  S._artists = null; S.loaded = true;
+  S._artists = null; S._listen = null; S._tracks = null; S.loaded = true;
   route();
 }
 function squashHay(m) {
@@ -582,7 +582,7 @@ var Player = {
         if (Player.mix !== m || !Mc) return;
         var w = Player.widget = Mc.PlayerWidget(ifr);
         w.ready.then(function () {
-          w.events.progress.on(function (p) { Player.tick(p); });
+          w.events.progress.on(function (p) { Player.playing = true; Player.tick(p, true); });
           w.events.play.on(function () { Player.playing = true; if (Player.pending != null) { var s = Player.pending; Player.pending = null; setTimeout(function () { Player.seek(s); }, 300); } });
           w.events.pause.on(function () { Player.playing = false; Log.flush(); });
           w.play();
@@ -650,22 +650,30 @@ var Log = {
   cur: null, lastPos: null, lastFlush: 0, pushing: false, lastSync: lsGet('lowlight-gh-sync', null), err: '',
   start: function (m, src) {
     this.end();
-    this.cur = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), slug: m.slug, title: m.title, start: new Date().toISOString(), sec: 0, maxPos: 0, src: src };
+    this.cur = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), slug: m.slug, title: m.title, start: new Date().toISOString(), sec: 0, maxPos: 0, src: src, ranges: [] };
     this.lastPos = null;
   },
   tick: function (pos, playing) {
     var c = this.cur; if (!c || !playing) { this.lastPos = pos; return; }
-    if (this.lastPos != null) { var d = pos - this.lastPos; if (d > 0 && d <= 5) c.sec += d; }
+    if (this.lastPos != null) {
+      var d = pos - this.lastPos;
+      if (d > 0 && d <= 5) {
+        c.sec += d;
+        var r = c.ranges[c.ranges.length - 1];
+        if (r && Math.abs(r[1] - this.lastPos) < 1.5) r[1] = pos; else c.ranges.push([this.lastPos, pos]);
+      }
+    }
     this.lastPos = pos; if (pos > c.maxPos) c.maxPos = pos;
-    if (Date.now() - this.lastFlush > 60000) this.flush();
+    if ((c.sec >= 30 && !this.data.sessions[c.id]) || Date.now() - this.lastFlush > 60000) this.flush();
   },
   flush: function () {
     var c = this.cur; if (!c || c.sec < 30) return;
     this.lastFlush = Date.now();
-    var s = this.data.sessions[c.id] = { slug: c.slug, title: c.title, start: c.start, sec: Math.round(c.sec), maxPos: Math.round(c.maxPos), src: c.src };
+    var s = this.data.sessions[c.id] = { slug: c.slug, title: c.title, start: c.start, sec: Math.round(c.sec), maxPos: Math.round(c.maxPos), src: c.src, ranges: mergeRanges(c.ranges) };
     if (this.data.pending.indexOf(c.id) < 0) this.data.pending.push(c.id);
     lsSet('lowlight-log', this.data);
-    S._listen = null;
+    S._listen = null; S._tracks = null;
+    if (S.tab === 'listening') drawListening();
     this.push();
     return s;
   },
@@ -712,14 +720,14 @@ var Log = {
         var fj = await fr.json(), file = {}; try { file = JSON.parse(this.b64d(fj.content)); } catch (e) {}
         Object.keys(file.sessions || {}).forEach(function (id) { var a = self.data.sessions[id], b = file.sessions[id]; if (!a || (b.sec > a.sec)) self.data.sessions[id] = b; });
       }
-      lsSet('lowlight-log', this.data); this.err = ''; this.lastSync = new Date().toISOString(); lsSet('lowlight-gh-sync', this.lastSync); S._listen = null;
+      lsSet('lowlight-log', this.data); this.err = ''; this.lastSync = new Date().toISOString(); lsSet('lowlight-gh-sync', this.lastSync); S._listen = null; S._tracks = null;
     } catch (e) { this.err = (e && e.message) || 'Could not reach GitHub'; }
     if (S.tab === 'listening') drawListening();
     if (S.tab === 'mix') route();
   }
 };
 setInterval(function () { if (STANDALONE) Log.push(); }, 120000);
-if (STANDALONE) window.__lowlight = { Log: Log, S: S, mark: function (x) { return mark(x); } };
+if (STANDALONE) window.__lowlight = { Log: Log, S: S, mark: function (x) { return mark(x); }, ts: function () { return trackStats(); }, ls: function () { return listenStats(); } };
 document.addEventListener('visibilitychange', function () { if (document.hidden && STANDALONE) Log.flush(); });
 window.addEventListener('pagehide', function () { if (STANDALONE) { Log.flush(); } });
 
@@ -729,6 +737,36 @@ function listenStats() {
   ss.forEach(function (s) { var b = by[s.slug] = by[s.slug] || { sec: 0, n: 0, maxPos: 0, last: '' }; b.sec += s.sec; b.n++; if (s.maxPos > b.maxPos) b.maxPos = s.maxPos; if (s.start > b.last) b.last = s.start; });
   ss.sort(function (a, b) { return b.start.localeCompare(a.start); });
   return (S._listen = { sessions: ss, by: by });
+}
+function mergeRanges(rs) {
+  var a = (rs || []).map(function (r) { return [Math.round(r[0]), Math.round(r[1])]; }).filter(function (r) { return r[1] > r[0]; }).sort(function (x, y) { return x[0] - y[0]; }), out = [];
+  a.forEach(function (r) { var l = out[out.length - 1]; if (l && r[0] <= l[1] + 2) l[1] = Math.max(l[1], r[1]); else out.push(r.slice()); });
+  return out;
+}
+function splitArtists(a) { return String(a || '').split(/\s+(?:&|and|with|feat\.?|ft\.?|x|vs\.?)\s+|\s*,\s*|\s*\/\s*/i).map(function (x) { return x.trim(); }).filter(function (x) { return x.length > 1; }); }
+function trackStats() {
+  if (S._tracks) return S._tracks;
+  var tracks = {}, artists = {};
+  listenStats().sessions.forEach(function (s) {
+    var m = S.bySlug[s.slug]; if (!m || !m.tracks.length) return;
+    var rs = s.ranges && s.ranges.length ? s.ranges : [[Math.max(0, s.maxPos - s.sec), s.maxPos]];
+    var timed = m.tracks.filter(function (t) { return t.sec != null; });
+    timed.forEach(function (t, i) {
+      var a = t.sec, b = i + 1 < timed.length ? timed[i + 1].sec : (m._end || a + 300), len = Math.max(1, b - a), ov = 0;
+      rs.forEach(function (r) { ov += Math.max(0, Math.min(b, r[1]) - Math.max(a, r[0])); });
+      if (ov < Math.min(60, len * 0.5)) return;
+      var key = squash(t.artist) + '|' + squash(t.title);
+      var when = new Date(Date.parse(s.start) + Math.max(0, a - rs[0][0]) * 1000).toISOString();
+      var x = tracks[key] = tracks[key] || { key: key, artist: t.artist, title: t.title, n: 0, sec: 0, slug: m.slug, at: t.sec, last: '' };
+      x.n++; x.sec += ov; if (when > x.last) { x.last = when; x.slug = m.slug; x.at = t.sec; }
+      splitArtists(t.artist).forEach(function (nm) {
+        var k = squash(nm); if (!k) return;
+        var y = artists[k] = artists[k] || { name: nm, key: k, sec: 0, tracks: {}, hours: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], last: '' };
+        y.sec += ov; y.tracks[key] = 1; y.hours[new Date(when).getHours()] += ov; if (when > y.last) y.last = when;
+      });
+    });
+  });
+  return (S._tracks = { tracks: tracks, artists: artists });
 }
 function listenedFrac(m) { var b = listenStats().by[m.slug]; return b && m._end ? Math.min(1, b.sec / m._end) : 0; }
 
@@ -748,7 +786,7 @@ function colChart(items, opts) {
 function rowChart(items, opts) {
   var max = Math.max.apply(null, items.map(function (i) { return i.value; }).concat([1]));
   return '<div class="rchart" role="group" aria-label="' + h(opts.title) + '">' + items.map(function (it) {
-    return '<button type="button" class="hit row" data-k="' + h(it.key) + '" data-tip="' + h(it.tip) + '" aria-label="' + h(it.tip) + '"><span class="rl"><b>' + h(it.label) + '</b> <em>' + h(it.valueLabel) + '</em></span><i style="width:' + Math.max(1, it.value / max * 100).toFixed(2) + '%"></i></button>';
+    return '<button type="button" class="hit row' + (it.sel ? ' sel' : '') + '" data-k="' + h(it.key) + '" data-tip="' + h(it.tip) + '" aria-label="' + h(it.tip) + '"><span class="rl"><b>' + h(it.label) + '</b> <em>' + h(it.valueLabel) + '</em></span><i style="width:' + Math.max(1, it.value / max * 100).toFixed(2) + '%"></i></button>';
   }).join('') + '</div>';
 }
 function weekStart(d) { var x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
@@ -773,6 +811,21 @@ function drawListening() {
       '<form class="inrow" id="lsF"><label class="sr" for="lsRepo">Private repository (owner/name)</label><input id="lsRepo" placeholder="alexstirling2016/lowlight-listening" autocomplete="off" spellcheck="false"><label class="sr" for="lsTok">GitHub key</label><input id="lsTok" type="password" placeholder="github_pat_…" autocomplete="off"><button class="btn primary" type="submit">Connect</button></form><p class="msg" id="lsMsg" aria-live="polite"></p>') + '</div>';
   if (!ss.length) { box.innerHTML = conn + '<div class="empty"><h2>Nothing played yet</h2><p>Play any mix here; the charts fill in as you listen.</p></div>'; bindLs(); return; }
   var tot = ss.reduce(function (a, s) { return a + s.sec; }, 0), mixesN = Object.keys(st.by).length;
+  var ts = trackStats(), tKeys = Object.keys(ts.tracks), aKeys = Object.keys(ts.artists);
+  var topA = aKeys.sort(function (a, b) { return ts.artists[b].sec - ts.artists[a].sec; }).slice(0, 10);
+  var ac = topA.length ? rowChart(topA.map(function (k) { var a = ts.artists[k], n = Object.keys(a.tracks).length; return { key: 'a' + k, value: a.sec, label: a.name, valueLabel: Math.round(a.sec / 60) + ' min · ' + n + (n === 1 ? ' track' : ' tracks'), sel: S.lsArtist === k, tip: a.name + ': ' + Math.round(a.sec / 60) + ' min across ' + n + (n === 1 ? ' track' : ' tracks') }; }), { title: 'Artists you’ve heard most' }) : '<p class="note">Fills in once you’ve played mixes that have tracklists.</p>';
+  var topT = tKeys.sort(function (a, b) { return ts.tracks[b].n - ts.tracks[a].n || ts.tracks[b].sec - ts.tracks[a].sec; }).slice(0, 10);
+  var tc = topT.length ? rowChart(topT.map(function (k) { var t = ts.tracks[k]; return { key: 't' + k, value: t.n * 1000 + t.sec / 60, label: [t.artist, t.title].filter(Boolean).join(' – '), valueLabel: t.n + (t.n === 1 ? ' time' : ' times') + ' · ' + Math.round(t.sec / 60) + ' min · last ' + new Date(t.last).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }), tip: [t.artist, t.title].filter(Boolean).join(' – ') + ': heard ' + t.n + (t.n === 1 ? ' time' : ' times') + '. Tap to play it.' }; }), { title: 'Tracks you’ve heard most' }) : '<p class="note">Fills in once you’ve played mixes that have tracklists.</p>';
+  var ad = '';
+  if (S.lsArtist && ts.artists[S.lsArtist]) {
+    var A = ts.artists[S.lsArtist], at = Object.keys(A.tracks).map(function (k) { return ts.tracks[k]; }).sort(function (a, b) { return b.sec - a.sec; });
+    var peak = A.hours.indexOf(Math.max.apply(null, A.hours));
+    ad = '<div class="panel" id="lsArtist" style="margin-top:1.2rem"><h3>' + h(A.name) + '</h3><p class="note" style="margin-top:0">' + Math.round(A.sec / 60) + ' min across ' + at.length + (at.length === 1 ? ' track' : ' tracks') + ' · last heard ' + h(new Date(A.last).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) + ' · mostly around ' + String(peak).padStart(2, '0') + ':00</p>' +
+      rowChart(at.slice(0, 12).map(function (t) { return { key: 't' + t.key, value: t.sec, label: t.title || '(untitled)', valueLabel: Math.round(t.sec / 60) + ' min · ' + t.n + (t.n === 1 ? ' time' : ' times') + ' · last ' + new Date(t.last).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }), tip: (t.title || '') + ': ' + Math.round(t.sec / 60) + ' min, heard ' + t.n + (t.n === 1 ? ' time' : ' times') + '. Tap to play it.' }; }), { title: 'Tracks by ' + A.name }) +
+      '<p class="note" style="margin-top:1rem">When you hear ' + h(A.name) + ' (minutes by hour of day)</p>' +
+      colChart(A.hours.map(function (sec, i) { return { key: 'x' + i, value: Math.round(sec / 60), label: i % 6 === 0 ? String(i).padStart(2, '0') + ':00' : '', tip: String(i).padStart(2, '0') + ':00: ' + Math.round(sec / 60) + ' min' }; }), { title: 'When you hear ' + A.name }) +
+      '<div class="inrow"><a class="btn" href="#artists" id="lsAllMixes">All mixes with ' + h(A.name) + '</a><button type="button" class="btn" id="lsAClose">Close</button></div></div>';
+  }
   var finished = Object.keys(st.by).filter(function (k) { var m = S.bySlug[k]; return m && m._end && st.by[k].sec >= m._end * 0.9; }).length;
   // weeks
   var now = weekStart(new Date()), weeks = [];
@@ -794,9 +847,11 @@ function drawListening() {
     return true;
   });
   box.innerHTML = conn +
-    '<div class="stats"><div class="stat"><b>' + (tot / 3600).toFixed(1) + '</b><span>hours listened</span></div><div class="stat"><b>' + mixesN + '</b><span>mixes played</span></div><div class="stat"><b>' + finished + '</b><span>heard to the end</span></div><div class="stat"><b>' + ss.length + '</b><span>sessions</span></div></div>' +
+    '<div class="stats"><div class="stat"><b>' + (tot / 3600).toFixed(1) + '</b><span>hours listened</span></div><div class="stat"><b>' + mixesN + '</b><span>mixes played</span></div><div class="stat"><b>' + finished + '</b><span>heard to the end</span></div><div class="stat"><b>' + tKeys.length + '</b><span>tracks heard</span></div><div class="stat"><b>' + aKeys.length + '</b><span>artists heard</span></div><div class="stat"><b>' + ss.length + '</b><span>sessions</span></div></div>' +
     '<section class="sect"><h2 class="spaced">P e r &nbsp; w e e k</h2><p class="note">Minutes per week, last 26 weeks. Tap a week to see its sessions.</p>' + wk + '</section>' +
     '<section class="sect"><h2 class="spaced">M o s t &nbsp; p l a y e d</h2><p class="note">Tap a mix to open it.</p>' + tm + '</section>' +
+    '<section class="sect"><h2 class="spaced">A r t i s t s</h2><p class="note">Counted when you’ve heard at least half of a track (or a minute of a long one). Tap an artist for their tracks, minutes and when you listen.</p>' + ac + ad + '</section>' +
+    '<section class="sect"><h2 class="spaced">T r a c k s</h2><p class="note">Tap a track to play it from where it starts.</p>' + tc + '</section>' +
     '<section class="sect"><h2 class="spaced">B y &nbsp; l a b e l</h2><p class="note">The blog’s labels of what you play. Tap one to browse that label.</p>' + lc + '</section>' +
     '<section class="sect"><h2 class="spaced">T i m e &nbsp; o f &nbsp; d a y</h2><p class="note">When you start listening. Tap an hour to see those sessions.</p>' + hr + '</section>' +
     '<section class="sect" id="lsList"><h2 class="spaced">S e s s i o n s</h2>' + (sel ? '<p class="note">Filtered: ' + h(sel[0] === 'w' ? 'week of ' + new Date(sel.slice(1)).toLocaleDateString(undefined, { day: 'numeric', month: 'long' }) : String(+sel.slice(1)).padStart(2, '0') + ':00–' + String(+sel.slice(1) + 1).padStart(2, '0') + ':00') + ' · <button type="button" class="linkbtn" id="lsAll">show all</button></p>' : '') +
@@ -824,12 +879,17 @@ function bindLs() {
   });
   var sy = $('lsSync'); if (sy) sy.addEventListener('click', async function () { sy.disabled = true; await Log.push(); await Log.pull(); });
   var off = $('lsOff'); if (off) off.addEventListener('click', function () { Log.cfg = null; try { localStorage.removeItem('lowlight-gh'); } catch (e) {} drawListening(); });
+  var am = $('lsAllMixes'); if (am) am.addEventListener('click', function () { var A = trackStats().artists[S.lsArtist]; if (A) { S.openArtist = A.key; S.artistQ = A.name; } });
+  var ac2 = $('lsAClose'); if (ac2) ac2.addEventListener('click', function () { S.lsArtist = null; drawListening(); });
   var all = $('lsAll'); if (all) all.addEventListener('click', function () { S.lsSel = null; drawListening(); });
   box.querySelectorAll('.hit').forEach(function (g) {
     function go() {
       var k = g.dataset.k;
       if (k[0] === 'm') { location.hash = mixHash(S.bySlug[k.slice(1)]); return; }
       if (k[0] === 'l') { location.hash = '#label-' + k.slice(1).replace(/\s+/g, '-'); return; }
+      if (k[0] === 'a') { S.lsArtist = S.lsArtist === k.slice(1) ? null : k.slice(1); drawListening(); var pa = $('lsArtist'); if (pa) pa.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); return; }
+      if (k[0] === 'x') return;
+      if (k[0] === 't') { var tt = trackStats().tracks[k.slice(1)], tm = tt && S.bySlug[tt.slug]; if (tm) { location.hash = mixHash(tm); setTimeout(function () { jump(tm, tt.at); }, 60); } return; }
       S.lsSel = S.lsSel === k ? null : k; drawListening();
       var l = $('lsList'); if (l && S.lsSel) l.scrollIntoView({ block: 'start', behavior: 'smooth' });
     }
