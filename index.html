@@ -152,6 +152,10 @@ span.ts{cursor:default;color:var(--muted)}
 .pick h3 a{color:var(--ink);text-decoration:none}
 .pick p{margin:.35rem 0 0;max-width:60ch}
 .pick .why{color:var(--ink)}
+.pick blockquote.q{margin:.6rem 0 0;padding-left:.8rem;border-left:2px solid var(--glow);font-style:italic;color:var(--ink);max-width:60ch}
+details.desc{margin-top:.6rem;font-size:.9rem}
+details.desc summary{cursor:pointer;color:var(--glow)}
+details.desc p{white-space:pre-line;color:var(--muted);max-width:64ch;margin:.5rem 0 0}
 .status{display:flex;gap:.6rem;align-items:center;color:var(--muted);font-size:.9rem;margin-top:1rem}
 .status i{width:.5rem;height:.5rem;border-radius:50%;background:var(--glow);animation:pulse 1.4s ease-in-out infinite}
 @keyframes pulse{50%{opacity:.25}}
@@ -327,6 +331,7 @@ function route() {
     if (mt) { slug = mt[1]; at = +mt[2]; } else slug = rest;
     tab = 'mix';
   } else if (/^(mixes|artists|ask|yours|about)$/.test(hs)) tab = hs;
+  else if (hs.indexOf('ask-') === 0) { tab = 'ask'; var qq = hs.slice(4).replace(/-/g, ' ').trim(); if (qq && qq !== S.ask.text) { S.ask.text = qq; S._autoAsk = qq; } }
   else if (hs.indexOf('label-') === 0) { S.label = hs.slice(6).replace(/-/g, ' '); S.q = ''; S.shown = 48; tab = 'mixes'; }
   document.querySelectorAll('nav.tabs a').forEach(function (a) { a.setAttribute('aria-current', a.dataset.tab === tab ? 'page' : 'false'); });
   var main = $('main');
@@ -461,14 +466,14 @@ function renderMix(main, slug, at) {
   var src = m.tracklistSource === 'comment' ? '<p class="note">Tracklist taken from a comment' + (m.tracklistComment && m.tracklistComment.author ? ' by ' + h(m.tracklistComment.author) : '') + (m.tracklistComment && m.tracklistComment.published ? ', ' + h(dateStr(m.tracklistComment.published)) : '') + '.</p>' : '';
   var hint = timed.length ? (STANDALONE ? '<p class="note">Tap a time to jump there. Mixcloud sometimes refuses to skip ahead; then the MP3 takes over.</p>' : (pl ? '<p class="note">The times open the player copy of this room at that spot (this page can’t hold a player itself).</p>' : '<p class="note">The times can jump straight into the mix once the player copy is set up (see About).</p>')) : '';
   var links = (m.links || []).filter(function (l) { return okUrl(l.url); });
-  var ai = m.ai && m.ai.summary ? '<section class="sect"><h2 class="spaced">M o o d</h2><div class="mood"><b>' + h(m.ai.primaryMood || '') + '</b>' + (m.ai.moodTags && m.ai.moodTags.length ? '<div class="tags">' + m.ai.moodTags.map(function (x) { return '<span>' + h(x) + '</span>'; }).join('') + '</div>' : '') + '<p style="margin:.4rem 0">' + h(m.ai.summary) + '</p><p class="note">A provisional reading by Claude from the post’s words, labels and tracklist' + (m.ai.confidence ? ' (confidence: ' + h(m.ai.confidence) + ')' : '') + '. It has not heard the mix.</p></div></section>' : '';
+  var ai = m.ai && m.ai.summary ? '<section class="sect"><h2 class="spaced">I n &nbsp; s h o r t</h2><div class="mood"><p style="margin:0">' + h(m.ai.summary) + '</p>' + ([m.ai.primaryMood].concat(m.ai.moodTags || []).filter(Boolean).length ? '<div class="tags">' + [m.ai.primaryMood].concat(m.ai.moodTags || []).filter(Boolean).map(function (x) { return '<span>' + h(x) + '</span>'; }).join('') + '</div>' : '') + '<p class="note">Claude’s summary of the post, used by Ask to search. It hasn’t heard the mix.</p></div></section>' : '';
 
   main.innerHTML = '<section class="view" aria-label="' + h(m.title) + '"><a class="back" href="#mixes">← All mixes</a>' +
     '<div class="mixhead">' + coverHtml(m, true) + '<div><p class="spaced">' + h((m.published || '').slice(0, 4).split('').join(' ')) + '</p><h1>' + h(m.title) + '</h1><div class="facts">' + facts.map(function (f) { return '<span>' + h(f) + '</span>'; }).join('') + '</div>' +
     (m.labels.length ? '<div class="labels">' + m.labels.map(function (l) { return '<a href="#label-' + h(l.replace(/\s+/g, '-')) + '">' + h(l) + '</a>'; }).join('') + '</div>' : '') +
     '<div class="actions" id="acts">' + acts.join('') + '</div></div></div>' +
-    (m.intro ? '<p class="intro">' + h(m.intro) + '</p>' : '') +
-    '<section class="cue"><h2 class="spaced">T r a c k l i s t</h2>' + strip + hint + src + tl + '</section>' + ai +
+    ai + (m.intro ? '<p class="intro">' + h(m.intro) + '</p>' : '') +
+    '<section class="cue"><h2 class="spaced">T r a c k l i s t</h2>' + strip + hint + src + tl + '</section>' +
     (links.length ? '<section class="sect"><h2 class="spaced">L i n k s &nbsp; t o &nbsp; t h e &nbsp; m u s i c</h2><ul class="links">' + links.map(function (l) { var u = okUrl(l.url); return '<li><a href="' + h(u) + '" target="_blank" rel="noopener">' + h(l.text && !/^https?:/.test(l.text) ? l.text : u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')) + '</a></li>'; }).join('') + '</ul></section>' : '') +
     '<nav class="pager">' + (prev ? '<a href="' + h(mixHash(prev)) + '"><small>Older</small>' + h(prev.title) + '</a>' : '<span></span>') + (next ? '<a href="' + h(mixHash(next)) + '" style="text-align:right"><small>Newer</small>' + h(next.title) + '</a>' : '') + '</nav></section>';
 
@@ -642,78 +647,150 @@ function renderArtists(main) {
 
 // ------------------------------------------------------------ ASK
 var SYN = { space: 'cosmic space sci-fi kosmische berlin', cosmic: 'cosmic space kosmische', night: 'night dark nocturnal late', sleep: 'sleep drone calm ambient', calm: 'calm ambient serene', rain: 'rain water storm', water: 'water rain ocean sea', autumn: 'autumn fall autumnal', winter: 'winter snow cold', summer: 'summer sun', piano: 'piano modern classical', classical: 'classical modern', dark: 'dark ominous dystopian', sad: 'melancholic melancholy sad', synth: 'synth electronic berlin school sequencer', sequencer: 'berlin school sequences sequencer', folk: 'folk acoustic guitar', guitar: 'guitar folk', drone: 'drone ambient', dream: 'dream dreamy dreamlike', radio: 'shortwave radio static', static: 'static shortwave noise' };
+function tagsOf(m) { return ((m.mixcloud && m.mixcloud.tags) || []).map(function (t) { return String(t).toLowerCase(); }); }
 function localRank(text) {
   var words = text.toLowerCase().replace(/[^a-z0-9À-ɏ\s-]/g, ' ').split(/\s+/).filter(function (w) { return w.length > 2 && !/^(the|and|for|something|with|some|that|this|music|mix|mixes|want|like|really|very|while|into|from|just|more|less|not|but|please|good|nice)$/.test(w); });
   var ex = []; words.forEach(function (w) { ex.push(w); var k = Object.keys(SYN).find(function (s) { return w.indexOf(s) === 0; }); if (k) SYN[k].split(' ').forEach(function (x) { ex.push(x); }); });
+  S.ask._words = ex;
   return S.mixes.map(function (m) {
-    var sc = 0, lab = m.labels.join(' ').toLowerCase(), ti = m.title.toLowerCase(), mood = m.ai ? [m.ai.primaryMood].concat(m.ai.moodTags || [], m.ai.descriptors || []).join(' ').toLowerCase() : '';
-    ex.forEach(function (w, i) { var wt = i < words.length ? 1 : 0.5; if (lab.indexOf(w) >= 0) sc += 3 * wt; if (ti.indexOf(w) >= 0) sc += 3 * wt; if (mood.indexOf(w) >= 0) sc += 2 * wt; if ((m.intro || '').toLowerCase().indexOf(w) >= 0) sc += 1 * wt; if (m._hay.indexOf(w) >= 0) sc += 0.5 * wt; });
-    if (mark(m.slug).heard) sc *= 0.8;
+    var sc = 0, ti = m.title.toLowerCase(), desc = (m.intro || '').toLowerCase();
+    var lab = m.labels.join(' ').toLowerCase() + ' ' + tagsOf(m).join(' ');
+    var mood = m.ai ? [m.ai.primaryMood].concat(m.ai.moodTags || [], m.ai.descriptors || []).join(' ').toLowerCase() : '';
+    // Order of evidence (the user's rule): description and title, then the author's own labels and Mixcloud tags, then mood readings.
+    ex.forEach(function (w, i) {
+      var wt = i < words.length ? 1 : 0.5, n = desc.split(w).length - 1;
+      if (n) sc += Math.min(n, 3) * 3 * wt;
+      if (ti.indexOf(w) >= 0) sc += 3 * wt;
+      if (lab.indexOf(w) >= 0) sc += 2.5 * wt;
+      if (mood.indexOf(w) >= 0) sc += 1.5 * wt;
+    });
     return { m: m, sc: sc };
   }).filter(function (r) { return r.sc > 0; }).sort(function (a, b) { return b.sc - a.sc; });
 }
 var EXAMPLES = ['Slow, spacey Berlin School for a late drive', 'Something autumnal and folky for a grey Sunday', 'Dark, cinematic drones, a bit sci-fi', 'Gentle piano and modern classical for reading', 'A long ambient mix to fall asleep to'];
 function renderAsk(main) {
   if (!S.mixes.length) { main.innerHTML = '<section class="view">' + emptyState() + '</section>'; return; }
-  main.innerHTML = '<section class="view"><h1 class="v">What should tonight sound like?</h1><p class="lede">Describe a mood, a setting or a sound. The room matches it against every mix’s title, labels, words and tracklist' + (STANDALONE ? '.' : ', and Claude can read the best candidates and choose three.') + '</p>' +
-    '<form class="askbox" id="askF"><label class="sr" for="askT">Describe what you want to hear</label><textarea id="askT" placeholder="Slow, spacey synths for a late drive, nothing too dark…">' + h(S.ask.text) + '</textarea><div class="askrow"><span class="note" id="askN" style="margin:0"></span><button class="btn primary" type="submit">Find mixes</button></div></form>' +
+  main.innerHTML = '<section class="view"><h1 class="v">What should tonight sound like?</h1><p class="lede">Describe a mood, a setting or a sound.' + (!STANDALONE ? ' Claude scans a summary of every mix with its labels and Mixcloud tags, then reads the full descriptions of the closest ones and tells you why it chose each.' : ' The room matches your words against every mix’s description, title, labels and tags.') + '</p>' +
+    '<form class="askbox" id="askF"><label class="sr" for="askT">Describe what you want to hear</label><textarea id="askT" placeholder="Slow, spacey synths for a late drive, nothing too dark…">' + h(S.ask.text) + '</textarea><div class="askrow"><span class="note" id="askN" style="margin:0">' + (STANDALONE ? 'This copy matches words only; the room on claude.ai can ask Claude.' : '') + '</span><button class="btn primary" type="submit">Find mixes</button></div></form>' +
     '<div class="examples">' + EXAMPLES.map(function (x, i) { return '<button type="button" class="chip" data-ex="' + i + '">' + h(x) + '</button>'; }).join('') + '</div><div id="askOut"></div></section>';
   $('askF').addEventListener('submit', function (e) { e.preventDefault(); runAsk($('askT').value.trim()); });
   main.querySelector('.examples').addEventListener('click', function (e) { var b = e.target.closest('[data-ex]'); if (!b) return; $('askT').value = EXAMPLES[+b.dataset.ex]; runAsk(EXAMPLES[+b.dataset.ex]); });
+  $('askOut').addEventListener('click', function (e) { var b = e.target.closest('[data-stop]'); if (b && askCtl) { askCtl.abort(); S.ask.status = 'stopped'; drawAsk(); } });
   drawAsk();
+  if (S._autoAsk) { var q0 = S._autoAsk; S._autoAsk = null; runAsk(q0); }
 }
+var ROOM_URL = 'https://claude.ai/artifact/YD93cCn7fCKQG9Kc1SLQ4a';
+function askSlug(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 180); }
 var askCtl = null;
-function runAsk(text) {
+var ASK_RULES = 'HOW TO JUDGE (the listener\'s own rules): The blog author\'s description of each mix, together with its title, is the main evidence of its mood, setting and sound. Next come the author\'s own blog labels and Mixcloud tags, which are good indicators. Mood readings, where present, were written by Claude from the description and are secondary. Use the tracklist only for songs or artists you actually know, and say so; never infer mood from a track title alone, because song titles can mislead (when a mix is built around words in its track titles, the description says so). Never invent a sound or fact the data does not support. Do not favour or avoid mixes the listener has marked as heard; use that mark only if the listener asks for something new to them, or for something they already know.';
+function catLine(m) {
+  return { n: m._i, t: m.title, y: String(m.published || '').slice(0, 4), l: m.labels, mc: tagsOf(m).length ? tagsOf(m) : undefined, d: (m.ai && m.ai.summary) ? m.ai.summary : (m.intro || '').replace(/\s+/g, ' ').slice(0, 160), h: mark(m.slug).heard ? 1 : undefined };
+}
+function fullCard(m) {
+  var arts = []; m.tracks.forEach(function (t) { if (t.artist && arts.indexOf(t.artist) < 0) arts.push(t.artist); });
+  return { slug: m.slug, title: m.title, year: String(m.published || '').slice(0, 4), length: dur(m._end), labels: m.labels, mixcloudTags: tagsOf(m), description: (m.intro || '').slice(0, 6000), mood: m.ai ? { primary: m.ai.primaryMood, tags: m.ai.moodTags, words: m.ai.descriptors } : undefined, tracks: m.tracks.slice(0, 30).map(function (t) { return [t.artist, t.title].filter(Boolean).join(' - '); }), heard: mark(m.slug).heard || undefined };
+}
+function fitCat(lines, maxBytes) {
+  var s = JSON.stringify(lines);
+  while (s.length * 1.15 > maxBytes && lines[0] && lines[0].d.length > 20) { lines.forEach(function (x) { x.d = x.d.slice(0, Math.floor(x.d.length * 0.7)); }); s = JSON.stringify(lines); }
+  return s;
+}
+async function askClaude(prompt, opts, ctl) {
+  return S.sample.json(prompt, Object.assign({ signal: ctl.signal }, opts));
+}
+async function runAsk(text) {
   if (!text) return;
-  S.ask = { text: text, picks: null, status: '', reading: '' };
+  if (askCtl) askCtl.abort();
+  S.ask = { text: text, picks: null, status: '', reading: '', err: '' };
   var ranked = localRank(text);
   S.ask.picks = ranked.slice(0, 5).map(function (r) { return { m: r.m, why: whyLocal(r.m, text) }; });
-  S.ask.source = 'local';
-  if (S.sample && ranked.length) {
-    S.ask.status = 'reading'; drawAsk();
-    if (askCtl) askCtl.abort();
-    var ctl = askCtl = new AbortController();
-    var cands = ranked.slice(0, 30).map(function (r) { return r.m; });
-    if (cands.length < 30) S.mixes.filter(function (m) { return cands.indexOf(m) < 0; }).slice(0, 30 - cands.length).forEach(function (m) { cands.push(m); });
-    var cat = cands.map(function (m) {
-      var arts = []; m.tracks.forEach(function (t) { if (t.artist && arts.indexOf(t.artist) < 0) arts.push(t.artist); });
-      return { slug: m.slug, title: m.title, year: String(m.published || '').slice(0, 4), labels: m.labels, length: dur(m._end), words: (m.intro || '').slice(0, 320), artists: arts.slice(0, 14), mood: m.ai ? [m.ai.primaryMood].concat(m.ai.moodTags || []) : undefined, heard: mark(m.slug).heard || undefined };
-    });
-    var prompt = 'You help a listener choose from the Low Light Mixes archive (long ambient, electronic, folk, prog and modern-classical DJ mixes from a blog).\n\nLISTENER ASKS: ' + JSON.stringify(text) + '\n\nCANDIDATE MIXES (JSON, only these exist):\n' + JSON.stringify(cat) +
-      '\n\nChoose the 3 mixes that best fit. Judge only from the data given: title, labels, the blog\'s own words, the artists in the tracklist (you may use what you know about those artists\' typical sound, and say so) and the mood tags. Prefer mixes the listener has not heard unless asked. Never invent a sound or fact not supported by the data or well-known about a listed artist.\n' +
-      'Reply as JSON: {"reading": one short sentence restating what the listener wants, "picks": [{"slug": exact slug from the list, "why": 1-2 plain sentences}]}';
-    S.sample.json(prompt, { signal: ctl.signal, modelTier: 'default' }).then(function (r) {
+  if (!STANDALONE && !S.sample && S.sampleP) { S.ask.status = 'wait'; drawAsk(); try { S.sample = await S.sampleP; } catch (e) {} if (S.ask.text !== text) return; }
+  if (!S.sample) { S.ask.status = STANDALONE ? 'standalone' : 'nosample'; drawAsk(); return; }
+  var ctl = askCtl = new AbortController();
+  var cap = 150000;
+  try { var lim = await S.sample.limits(); if (lim && lim.maxPromptBytes) cap = Math.min(cap, lim.maxPromptBytes - 8000); } catch (e) {}
+  var fatal = function (e) { return e && (e.code === 'cancelled' || e.code === 'not_granted' || e.code === 'rate_limited'); };
+  try {
+    // Stage 1 (quick): scan a one-line summary of every mix. If it fails, fall back to the word ranking.
+    S.ask.status = 'scan'; drawAsk();
+    var ids = [];
+    try {
+      var cat = fitCat(S.mixes.map(catLine), Math.min(cap, 140000) - 3000);
+      var p1 = 'You help a listener choose from the Low Light Mixes archive (' + S.mixes.length + ' long ambient, electronic, folk, prog and modern-classical mixes from a blog).\n\nLISTENER ASKS: ' + JSON.stringify(text) + '\n\n' + ASK_RULES +
+        '\n\nARCHIVE (one object per mix; n = number, t = title, y = year, l = blog labels, mc = Mixcloud tags, d = a short summary of the blog description, h = marked heard):\n' + cat +
+        '\n\nFirst pass. Return the numbers (n) of the 20 mixes most worth reading in full for this request, best first, casting a slightly wide net. Reply only as JSON: {"n": [numbers]}';
+      var r1 = await askClaude(p1, { modelTier: 'quick' }, ctl);
+      ids = (r1 && Array.isArray(r1.n) ? r1.n : []).map(function (i) { var m = S.mixes[+i]; return m ? m.slug : null; }).filter(Boolean);
+    } catch (e) { if (fatal(e)) throw e; }
+    if (ctl.signal.aborted || S.ask.text !== text) return;
+    var pool = []; ids.concat(ranked.slice(0, 12).map(function (r) { return r.m.slug; })).forEach(function (id) { if (pool.indexOf(id) < 0) pool.push(id); });
+    if (pool.length < 8) S.mixes.forEach(function (m) { if (pool.length < 12 && pool.indexOf(m.slug) < 0 && (m.intro || '').length > 300) pool.push(m.slug); });
+    // Stage 2: read the full descriptions and choose, with reasons. One retry with a smaller set if it fails.
+    var tries = [{ n: 24, len: 3500, tier: 'default' }, { n: 12, len: 1500, tier: 'quick' }], r2 = null, used = [];
+    for (var k = 0; k < tries.length && !r2; k++) {
+      var tr = tries[k];
+      used = pool.slice(0, tr.n);
+      S.ask.status = 'read'; S.ask.reading_n = used.length; S.ask.retry = k > 0; drawAsk();
+      var cards = used.map(function (id) { var c = fullCard(S.bySlug[id]); c.description = c.description.slice(0, tr.len); return c; });
+      var body = JSON.stringify(cards);
+      while (body.length * 1.15 > cap - 4000 && cards.length > 6) { cards.pop(); used.pop(); body = JSON.stringify(cards); }
+      var p2 = 'You help a listener choose from the Low Light Mixes archive.\n\nLISTENER ASKS: ' + JSON.stringify(text) + '\n\n' + ASK_RULES +
+        '\n\nCANDIDATES (full blog descriptions):\n' + body +
+        '\n\nRead every description in full. Choose the 3 to 5 mixes that best fit the request, best first. For each, explain in 2-4 plain sentences why it fits, grounded in its description, and mention labels, Mixcloud tags or known artists only as support. If something in it might not fit, say so in "caveat". Reply only as JSON: {"reading": one sentence restating what the listener wants, "picks": [{"slug": exact slug, "why": "...", "quote": a short exact phrase copied from its description, "caveat": optional short text}]}';
+      try { r2 = await askClaude(p2, { modelTier: tr.tier }, ctl); }
+      catch (e) { if (fatal(e) || k === tries.length - 1) throw e; }
       if (ctl.signal.aborted || S.ask.text !== text) return;
-      var picks = (r && Array.isArray(r.picks) ? r.picks : []).map(function (p) { var m = S.bySlug[p && p.slug]; return m && cands.indexOf(m) >= 0 ? { m: m, why: String(p.why || '').slice(0, 500), ai: true } : null; }).filter(Boolean).slice(0, 3);
-      if (!picks.length) throw { code: 'empty' };
-      S.ask.picks = picks; S.ask.source = 'claude'; S.ask.reading = String(r.reading || '').slice(0, 240); S.ask.status = '';
-      drawAsk();
-    }).catch(function (e) {
-      if (e && e.code === 'cancelled') return;
-      S.ask.status = e && e.code === 'not_granted' ? 'declined' : 'failed';
-      if (e && e.code === 'not_granted') S.sample = null;
-      drawAsk();
-    });
+    }
+    var picks = (r2 && Array.isArray(r2.picks) ? r2.picks : []).map(function (p) {
+      var m = p && S.bySlug[p.slug]; if (!m) return null;
+      var q = String(p.quote || '').trim().replace(/^["“]|["”]$/g, ''); if (q && (m.intro || '').toLowerCase().indexOf(q.toLowerCase()) < 0) q = '';
+      return { m: m, why: String(p.why || '').slice(0, 900), quote: q.slice(0, 300), caveat: String(p.caveat || '').slice(0, 300), ai: true };
+    }).filter(Boolean).slice(0, 5);
+    if (!picks.length) throw { code: 'empty' };
+    S.ask.picks = picks; S.ask.reading = String((r2 && r2.reading) || '').slice(0, 300); S.ask.status = ''; S.ask.read = used.length;
+    drawAsk();
+  } catch (e) {
+    if (e && e.code === 'cancelled') return;
+    if (S.ask.text !== text) return;
+    S.ask.status = 'failed'; S.ask.err = (e && e.code) || 'error'; S.ask.errMsg = e && e.message ? String(e.message).slice(0, 160) : '';
+    if (e && e.code === 'not_granted') S.sample = null;
+    drawAsk();
   }
-  drawAsk();
 }
 function whyLocal(m, text) {
   var bits = [];
-  if (m.labels.length) bits.push('Labelled ' + m.labels.slice(0, 4).join(', ') + '.');
-  if (m.ai && m.ai.primaryMood) bits.push('Mood reading: ' + [m.ai.primaryMood].concat(m.ai.moodTags || []).slice(0, 3).join(', ') + '.');
-  var first = (m.intro || '').split('\n')[0]; if (first) bits.push(first.slice(0, 160) + (first.length > 160 ? '…' : ''));
+  var d = m.intro || '', dl = d.toLowerCase(), at = -1;
+  (S.ask._words || []).some(function (w) { at = dl.indexOf(w); return at >= 0; });
+  if (d) {
+    var st = at < 0 ? 0 : Math.max(0, d.lastIndexOf('.', at) + 1, d.lastIndexOf('\n', at) + 1);
+    var snip = d.slice(st, st + 220).trim();
+    bits.push('“' + snip + (d.length > st + 220 ? '…' : '') + '”');
+  }
+  var tg = m.labels.concat(tagsOf(m)); if (tg.length) bits.push('Labels and tags: ' + tg.slice(0, 6).join(', ') + '.');
   return bits.join(' ');
 }
+var ERRS = { not_granted: 'Claude isn’t allowed in this view. Open the page’s Permissions menu to allow it, then ask again.', rate_limited: 'Claude is busy or your usage limit is reached. Try again in a little while.', prompt_too_large: 'The request was too large for Claude here.', empty: 'Claude didn’t return a usable answer.', invalid_json: 'Claude’s answer came back garbled.' };
 function drawAsk() {
   var out = $('askOut'); if (!out) return;
   var a = S.ask;
   if (!a.picks) { out.innerHTML = ''; return; }
-  var st = a.status === 'reading' ? '<div class="status"><i></i>Claude is reading the best 30 candidates. The closest matches by words are shown meanwhile.</div>' : a.status === 'failed' ? '<p class="note">Claude could not answer just now, so these are the closest matches by words.</p>' : a.status === 'declined' ? '<p class="note">Showing the closest matches by words. Claude’s choice is off because it was not allowed here.</p>' : '';
-  out.innerHTML = (a.reading ? '<p class="note" style="font-size:1rem">' + h(a.reading) + '</p>' : '') + st +
-    (a.picks.length ? '<div class="picks">' + a.picks.map(function (p) {
+  var st = '';
+  if (a.status === 'wait') st = '<div class="status"><i></i>Connecting to Claude…</div>';
+  else if (a.status === 'standalone') st = '<p class="note">This copy can only match words. <a href="' + h(ROOM_URL + '#ask-' + askSlug(a.text)) + '" target="_blank" rel="noopener">Ask Claude in the room</a> to have it read the descriptions.</p>';
+  else if (a.status === 'nosample') st = '<p class="note warn">Claude isn’t available in this view, so these are the closest matches by words. On claude.ai, open the room’s Permissions menu and allow Claude, then reload.</p>';
+  else if (a.status === 'scan') st = '<div class="status"><i></i>Claude is scanning all ' + S.mixes.length + ' mixes by title, labels and tags… <button type="button" class="chip" data-stop="1">Stop</button></div>';
+  else if (a.status === 'read') st = '<div class="status"><i></i>Claude is reading the full descriptions of ' + a.reading_n + ' candidates' + (a.retry ? ' (second try, smaller set)' : '') + '… <button type="button" class="chip" data-stop="1">Stop</button></div>';
+  else if (a.status === 'failed') st = '<p class="note warn">' + h(ERRS[a.err] || 'Claude could not answer just now (' + a.err + (a.errMsg ? ': ' + a.errMsg : '') + ').') + ' Below are the closest matches by words.</p>';
+  else if (a.status === 'stopped') st = '<p class="note">Stopped. Below are the closest matches by words.</p>';
+  var busy = a.status === 'scan' || a.status === 'read';
+  out.innerHTML = (a.reading ? '<p class="note" style="font-size:1rem;margin-top:1.4rem">' + h(a.reading) + '</p>' : '') + st +
+    (busy ? '<p class="note" style="margin-top:1.4rem">Closest by words while you wait:</p>' : '') +
+    (a.picks.length ? '<div class="picks"' + (busy ? ' style="opacity:.6"' : '') + '>' + a.picks.map(function (p) {
       var m = p.m;
-      return '<article class="pick"><a href="' + h(mixHash(m)) + '" tabindex="-1" aria-hidden="true">' + coverHtml(m) + '</a><div><h3><a href="' + h(mixHash(m)) + '">' + h(m.title) + '</a></h3><p class="note" style="margin-top:.2rem">' + h([String(m.published || '').slice(0, 4), dur(m._end), m.tracks.length ? m.tracks.length + ' tracks' : '', mark(m.slug).heard ? 'heard' : ''].filter(Boolean).join(' · ')) + '</p><p class="why">' + h(p.why) + '</p>' + (p.ai ? '<p class="note">Chosen by Claude from the listed data.</p>' : '') + '</div></article>';
-    }).join('') + '</div>' : '<p class="lede" style="margin-top:1.5rem">No mix mentions those words. Try a label like ambient, berlin school, folk or autumn.</p>');
+      return '<article class="pick"><a href="' + h(mixHash(m)) + '" tabindex="-1" aria-hidden="true">' + coverHtml(m) + '</a><div><h3><a href="' + h(mixHash(m)) + '">' + h(m.title) + '</a></h3><p class="note" style="margin-top:.2rem">' + h([String(m.published || '').slice(0, 4), dur(m._end), m.tracks.length ? m.tracks.length + ' tracks' : '', mark(m.slug).heard ? 'heard' : ''].filter(Boolean).join(' · ')) + '</p>' +
+        '<p class="why">' + h(p.why) + '</p>' + (p.quote ? '<blockquote class="q">“' + h(p.quote) + '”</blockquote>' : '') + (p.caveat ? '<p class="note">' + h(p.caveat) + '</p>' : '') +
+        (m.intro ? '<details class="desc"><summary>Read the full description</summary><p>' + h(m.intro) + '</p></details>' : '') + '</div></article>';
+    }).join('') + '</div>' + (!busy && a.picks[0] && a.picks[0].ai ? '<p class="note" style="margin-top:1.4rem">Chosen by Claude after reading ' + (a.read || '') + ' full descriptions.</p>' : '') : '<p class="lede" style="margin-top:1.5rem">No mix mentions those words. Try a label like ambient, berlin school, folk or autumn.</p>');
 }
 
 // ------------------------------------------------------------ YOURS
@@ -726,7 +803,7 @@ function renderYours(main) {
   main.innerHTML = '<section class="view"><h1 class="v">Yours</h1><p class="lede">' + (STANDALONE ? 'Kept in this browser.' : (S.uid ? 'Private to you: nobody else who opens this room sees these.' : 'Kept in this browser for now.')) + '</p>' +
     '<section class="sect" style="margin-top:1rem"><h2 class="spaced">F a v o u r i t e s</h2>' + grid(fav, 'Mark a mix as a favourite from its page.') + '</section>' +
     '<section class="sect"><h2 class="spaced">R e c e n t l y &nbsp; o p e n e d</h2>' + grid(recent, 'Mixes you open appear here.') + '</section>' +
-    '<section class="sect"><h2 class="spaced">H e a r d</h2>' + grid(heard, 'Mark mixes you have heard; the Ask page then leans towards the rest.') + '</section></section>';
+    '<section class="sect"><h2 class="spaced">H e a r d</h2>' + grid(heard, 'Mixes you mark as heard. Ask only uses this when you ask for something new, or something you know.') + '</section></section>';
 }
 
 // ------------------------------------------------------------ ABOUT
@@ -778,6 +855,7 @@ if (STANDALONE) {
     .catch(function () { setMixes([]); });
   fetch('data/status.json', { cache: 'no-cache' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (s) { if (s) { S.monitor = s; if (S.tab === 'about') route(); } }).catch(function () {});
 } else {
+  S.sampleP = Promise.resolve(window.claude.use('sample')).catch(function () { return null; });
   (async function () {
     var db = await window.claude.use('db');
     var user = await window.claude.use('user');
@@ -798,8 +876,7 @@ if (STANDALONE) {
     if (S.uid) db.doc('data/users/' + S.uid + '/memory').get().then(function (s) {
       if (s.exists) { var d = s.data() || {}; S.memory = { marks: Object.assign({}, S.memory.marks, d.marks || {}), recent: d.recent || S.memory.recent || [] }; lsSet('lowlight-memory', S.memory); if (S.tab === 'yours') route(); }
     }).catch(function () {});
-    S.sample = await window.claude.use('sample');
-    if (S.tab === 'ask') route();
+    S.sample = await S.sampleP;
   })();
 }
 })();
