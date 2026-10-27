@@ -294,7 +294,7 @@ def parse_post(e):
     intro_lines = [l for l in lines[:stop]
                    if not LINK_LABEL.match(l) and not l.lower().startswith("http")
                    and not re.fullmatch(r"links to all the music:?", l, re.I)]
-    intro = "\n".join(intro_lines).strip()[:1500]
+    intro = "\n".join(intro_lines).strip()[:12000]
 
     imgs = [i for i in page.imgs if "googleusercontent" in i or "blogspot" in i or "bp.blogspot" in i]
     thumb = (e.get("media$thumbnail") or {}).get("url")
