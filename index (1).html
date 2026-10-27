@@ -1,0 +1,1125 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>Low Light Listening Room</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a night-radio cue sheet. One reading column (≤ 64rem) with a mix grid; each mix opens as a page whose tracklist is a clickable cue sheet with a time strip. Dark-first. */
+:root{
+  --ground:#13141d; --surface:#1a1c28; --surface-2:#232635; --line:#2d3043;
+  --ink:#e7e3da; --muted:#9295a8; --glow:#dba8c8; --glow-ink:#1d1420; --tape:#86c9bd; --bar:#e48cc4; --warn:#e7a46a;
+  --display:"Young Serif","Iowan Old Style",Georgia,serif;
+  --body:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --haze:rgba(219,168,200,.10);
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --ground:#efeef3; --surface:#f8f7fb; --surface-2:#e6e4ee; --line:#d4d1df;
+  --ink:#1d1e27; --muted:#5d5f73; --glow:#8b3c72; --glow-ink:#fff6fb; --tape:#1d6b60; --bar:#8b3c72; --warn:#9a5413; --haze:rgba(139,60,114,.07); color-scheme:light}}
+:root[data-theme="light"]{
+  --ground:#efeef3; --surface:#f8f7fb; --surface-2:#e6e4ee; --line:#d4d1df;
+  --ink:#1d1e27; --muted:#5d5f73; --glow:#8b3c72; --glow-ink:#fff6fb; --tape:#1d6b60; --bar:#8b3c72; --warn:#9a5413; --haze:rgba(139,60,114,.07); color-scheme:light}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--ground);color:var(--ink);font:1rem/1.6 var(--body);
+  background-image:radial-gradient(ellipse 80% 45% at 85% -10%,var(--haze),transparent 70%);background-attachment:fixed}
+a{color:var(--glow);text-underline-offset:.2em;text-decoration-thickness:1px}
+a:hover{color:var(--ink)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--glow);outline-offset:3px;border-radius:3px}
+.page{max-width:64rem;margin:0 auto;padding-block:1.2rem 7rem;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.spaced{font:700 .72rem/1 var(--body);letter-spacing:.42em;text-transform:uppercase;color:var(--muted)}
+
+/* masthead */
+.mast{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:.7rem 1.5rem;padding-bottom:.9rem;border-bottom:1px solid var(--line)}
+.word{margin:0;font:1.55rem/1 var(--display);letter-spacing:.01em}
+.word a{color:var(--ink);text-decoration:none}
+.word small{font:400 .78rem var(--body);letter-spacing:.3em;text-transform:uppercase;color:var(--muted);margin-left:.6rem}
+nav.tabs{display:flex;flex-wrap:wrap;gap:.2rem 1.1rem}
+nav.tabs a{color:var(--muted);text-decoration:none;padding:.2rem 0;border-bottom:1px solid transparent;font-size:.95rem}
+nav.tabs a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--glow)}
+
+.view{margin-top:2rem}
+h1.v{font:400 clamp(1.9rem,4.6vw,2.7rem)/1.1 var(--display);margin:0 0 .5rem;text-wrap:balance}
+.lede{color:var(--muted);margin:0 0 1.5rem;max-width:62ch}
+
+/* hero (latest mix) */
+.hero{display:grid;grid-template-columns:minmax(0,15rem) minmax(0,1fr);gap:1.6rem;align-items:end;margin:1.6rem 0 2.4rem}
+@media(max-width:40rem){.hero{grid-template-columns:1fr}.hero .cover{max-width:15rem}}
+.hero h2{font:400 clamp(1.7rem,4vw,2.4rem)/1.1 var(--display);margin:.35rem 0 .5rem;text-wrap:balance}
+.hero h2 a{color:var(--ink);text-decoration:none}
+.hero p{margin:.3rem 0;max-width:58ch;color:var(--muted)}
+
+/* covers */
+.cover{position:relative;aspect-ratio:1;max-width:100%;border-radius:.35rem;overflow:hidden;background:var(--surface-2)}
+.cover img{width:100%;height:100%;object-fit:cover;display:block}
+.cover .gen{position:absolute;inset:0;display:flex;align-items:flex-end;padding:.6rem;font:2.2rem/1 var(--display);color:rgba(255,248,240,.85)}
+
+/* filters */
+.filters{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;margin-bottom:.9rem}
+.filters input[type=search]{flex:1 1 16rem;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:.55rem 1rem}
+.filters select{background:var(--surface);border:1px solid var(--line);border-radius:.4rem;padding:.5rem .6rem}
+.chips{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.4rem}
+.chip{background:none;border:1px solid var(--line);border-radius:999px;padding:.18rem .7rem;font-size:.85rem;color:var(--muted);cursor:pointer}
+.chip[aria-pressed="true"]{color:var(--ink);border-color:var(--glow);background:var(--surface)}
+.chip em{font-style:normal;color:var(--muted);font-size:.75rem;margin-left:.3rem;font-variant-numeric:tabular-nums}
+.count{font-size:.88rem;color:var(--muted);margin:0 0 1rem}
+
+/* grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(10.5rem,1fr));gap:1.6rem 1.2rem}
+.card{display:flex;flex-direction:column;gap:.45rem;min-width:0}
+.card a.t{color:var(--ink);text-decoration:none;font:400 1.08rem/1.25 var(--display)}
+.card a.t:hover{text-decoration:underline;text-decoration-color:var(--glow)}
+.card .meta{font-size:.8rem;color:var(--muted)}
+.card .hits{margin:.1rem 0 0;padding:0;list-style:none;font-size:.82rem}
+.card .hits li{display:flex;gap:.4rem;min-width:0}
+.card .hits a{font-family:var(--mono);font-size:.78rem;color:var(--tape);text-decoration:none;flex:none}
+.card .hits span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.more{display:block;margin:2rem auto 0;background:none;border:1px solid var(--line);border-radius:999px;padding:.5rem 1.4rem;cursor:pointer;color:var(--muted)}
+.mark-dot{display:inline-block;width:.45rem;height:.45rem;border-radius:50%;background:var(--glow);margin-right:.35rem;vertical-align:.1em}
+
+/* mix page */
+.back{background:none;border:0;padding:0;color:var(--muted);cursor:pointer;font-size:.92rem}
+.mixhead{display:grid;grid-template-columns:minmax(0,17rem) minmax(0,1fr);gap:1.8rem;align-items:end;margin-top:1.2rem}
+@media(max-width:42rem){.mixhead{grid-template-columns:1fr}.mixhead .cover{max-width:17rem}}
+.mixhead h1{font:400 clamp(1.9rem,5vw,3rem)/1.06 var(--display);margin:.4rem 0 .6rem;text-wrap:balance}
+.facts{display:flex;flex-wrap:wrap;gap:.25rem 1rem;font-size:.88rem;color:var(--muted)}
+.labels{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.7rem}
+.labels a{font-size:.8rem;border:1px solid var(--line);border-radius:999px;padding:.08rem .6rem;color:var(--muted);text-decoration:none}
+.labels a:hover{color:var(--ink);border-color:var(--glow)}
+.actions{display:flex;flex-wrap:wrap;gap:.5rem .6rem;align-items:center;margin-top:1.1rem}
+.btn{display:inline-flex;align-items:center;gap:.45rem;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:.45rem 1rem;font-size:.92rem;text-decoration:none;cursor:pointer}
+.btn:hover{border-color:var(--muted);color:var(--ink)}
+.btn.primary{background:var(--glow);border-color:var(--glow);color:var(--glow-ink);font-weight:700}
+.btn.primary:hover{filter:brightness(1.07);color:var(--glow-ink)}
+.btn[aria-pressed="true"]{border-color:var(--glow);color:var(--glow)}
+.btn svg{width:.9rem;height:.9rem;fill:currentColor}
+.intro{margin:1.8rem 0 0;max-width:64ch;white-space:pre-line}
+.note{font-size:.88rem;color:var(--muted);margin:.6rem 0 0}
+.note.warn{color:var(--warn)}
+
+/* cue strip + tracklist */
+.cue{margin-top:2.4rem}
+.cue h2,.sect h2{margin:0 0 .9rem}
+.strip{position:relative;display:flex;height:2.4rem;border-radius:.3rem;overflow:hidden;background:var(--surface-2);cursor:pointer}
+.strip .seg{display:block;position:relative;flex:none;border:0;border-right:1px solid var(--ground);padding:0;margin:0;cursor:pointer;background:color-mix(in srgb,var(--glow) calc(var(--k)*1%),var(--surface-2))}
+.strip .seg:hover,.strip .seg.now{background:var(--tape)}
+.strip .head{position:absolute;top:0;bottom:0;width:2px;background:var(--ink);pointer-events:none;left:0}
+.ticks{display:flex;justify-content:space-between;font:.72rem var(--mono);color:var(--muted);margin-top:.3rem}
+ol.tl{list-style:none;margin:1.2rem 0 0;padding:0;counter-reset:n}
+ol.tl li{display:grid;grid-template-columns:4.4rem minmax(0,1fr);gap:.2rem 1rem;padding:.55rem 0;border-bottom:1px solid var(--line);align-items:baseline}
+ol.tl li.now{background:linear-gradient(90deg,var(--haze),transparent)}
+ol.tl li.now .who::before{content:"";display:inline-block;width:.45rem;height:.45rem;border-radius:50%;background:var(--tape);margin-right:.45rem;vertical-align:.12em}
+.ts{font:500 .92rem var(--mono);color:var(--tape);background:none;border:0;padding:0;text-align:left;cursor:pointer;text-decoration:none;font-variant-numeric:tabular-nums}
+.ts:hover{color:var(--ink);text-decoration:underline}
+span.ts{cursor:default;color:var(--muted)}
+.who{font-weight:700}
+.what{color:var(--ink)}
+.alb{display:block;font-size:.85rem;color:var(--muted)}
+.alb a{font-size:.82rem}
+.sect{margin-top:2.6rem}
+.links{columns:2 16rem;column-gap:2rem;margin:0;padding:0;list-style:none;font-size:.88rem}
+.links li{break-inside:avoid;margin:0 0 .35rem;overflow-wrap:anywhere}
+.mood{border:1px dashed var(--tape);border-radius:.45rem;padding:1rem 1.1rem;max-width:64ch}
+.mood b{color:var(--tape)}
+.mood .tags{display:flex;flex-wrap:wrap;gap:.35rem;margin:.5rem 0}
+.mood .tags span{font-size:.8rem;border:1px solid var(--line);border-radius:999px;padding:.05rem .55rem}
+.pager{display:flex;justify-content:space-between;gap:1rem;margin-top:3rem;padding-top:1rem;border-top:1px solid var(--line);font-size:.92rem}
+.pager a{text-decoration:none;max-width:48%}
+.pager small{display:block;color:var(--muted)}
+
+/* artists */
+.alist{display:flex;flex-direction:column}
+.arow{border-bottom:1px solid var(--line)}
+.arow>button{display:flex;width:100%;justify-content:space-between;gap:1rem;background:none;border:0;padding:.65rem 0;cursor:pointer;text-align:left}
+.arow>button b{font:400 1.1rem var(--display)}
+.arow>button span{color:var(--muted);font-size:.85rem;white-space:nowrap}
+.arow ul{list-style:none;margin:0 0 .9rem;padding:0;font-size:.9rem;display:flex;flex-direction:column;gap:.3rem}
+.arow li{display:grid;grid-template-columns:4.2rem minmax(0,1fr);gap:.8rem}
+.arow li small{color:var(--muted)}
+
+/* ask */
+.askbox{border:1px solid var(--line);border-radius:.6rem;background:var(--surface);padding:1rem 1.1rem}
+.askbox textarea{width:100%;min-height:4.6rem;resize:vertical;border:0;background:transparent;outline:none;font:1.15rem/1.5 var(--body)}
+.askbox textarea::placeholder{color:var(--muted)}
+.askrow{display:flex;flex-wrap:wrap;gap:.6rem;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:.7rem}
+.examples{display:flex;flex-wrap:wrap;gap:.45rem;margin:.9rem 0 0}
+.picks{display:flex;flex-direction:column;gap:1.6rem;margin-top:2rem}
+.pick{display:grid;grid-template-columns:7rem minmax(0,1fr);gap:1.1rem}
+.pick h3{font:400 1.35rem/1.15 var(--display);margin:0}
+.pick h3 a{color:var(--ink);text-decoration:none}
+.pick p{margin:.35rem 0 0;max-width:60ch}
+.pick .why{color:var(--ink)}
+.pick blockquote.q{margin:.6rem 0 0;padding-left:.8rem;border-left:2px solid var(--glow);font-style:italic;color:var(--ink);max-width:60ch}
+details.desc{margin-top:.6rem;font-size:.9rem}
+details.desc summary{cursor:pointer;color:var(--glow)}
+details.desc p{white-space:pre-line;color:var(--muted);max-width:64ch;margin:.5rem 0 0}
+.status{display:flex;gap:.6rem;align-items:center;color:var(--muted);font-size:.9rem;margin-top:1rem}
+.status i{width:.5rem;height:.5rem;border-radius:50%;background:var(--glow);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.25}}
+@media(prefers-reduced-motion:reduce){.status i{animation:none}}
+
+/* panels */
+.panel{border:1px solid var(--line);border-radius:.5rem;background:var(--surface);padding:1.1rem 1.2rem;margin-bottom:1.4rem;max-width:46rem}
+.panel h3{font:400 1.3rem var(--display);margin:0 0 .5rem}
+.panel p{margin:.4rem 0}
+.state{display:flex;gap:.5rem;align-items:baseline}
+.state i{flex:none;width:.6rem;height:.6rem;border-radius:50%;display:inline-block;background:var(--muted)}
+.state.ok i{background:var(--tape)} .state.warn i{background:var(--warn)}
+.steps{margin:.6rem 0 0;padding-left:1.3rem}
+.steps li{margin:.35rem 0}
+.steps code,.panel code{font:.86rem var(--mono);background:var(--surface-2);padding:.05rem .35rem;border-radius:.25rem;overflow-wrap:anywhere}
+.inrow{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.6rem}
+.inrow input{flex:1 1 14rem;min-width:0;background:var(--ground);border:1px solid var(--line);border-radius:.4rem;padding:.5rem .7rem;font-family:var(--mono);font-size:.9rem}
+.msg{font-size:.9rem;margin:.5rem 0 0}
+.msg.err{color:var(--warn)} .msg.good{color:var(--tape)}
+.empty{border:1px dashed var(--line);border-radius:.6rem;padding:2rem 1.4rem;text-align:left;max-width:46rem}
+.empty h2{font:400 1.6rem var(--display);margin:0 0 .5rem}
+
+/* player bar (GitHub Pages copy only) */
+.player{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);padding:.55rem max(16px,env(safe-area-inset-right,0px)) calc(.55rem + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.player .in{max-width:64rem;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.4rem 1rem;align-items:center}
+.player .now{font-size:.85rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.player .now b{color:var(--ink)}
+.player .ctl{display:flex;gap:.4rem}
+.player .ctl button{background:none;border:1px solid var(--line);border-radius:999px;padding:.2rem .7rem;font-size:.82rem;cursor:pointer;color:var(--muted)}
+.player .ctl button[aria-pressed="true"]{color:var(--ink);border-color:var(--glow)}
+.player .slot{grid-column:1/-1;min-width:0}
+.player iframe{display:block;width:100%;height:60px;border:0}
+.player audio{display:block;width:100%}
+.toast{position:fixed;left:50%;bottom:calc(6.5rem + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:.5rem 1.1rem;font-size:.9rem;z-index:30;max-width:calc(100vw - 32px)}
+/* charts */
+.cchart{margin-top:.6rem}
+.cplot{position:relative;height:11rem;margin-left:2.4rem}
+.gl{position:absolute;left:0;right:0;border-top:1px solid var(--line);height:0}
+.gl em{position:absolute;right:calc(100% + .4rem);top:-.55rem;font:normal .7rem var(--mono);color:var(--muted)}
+.ccols{position:absolute;inset:0;display:flex;align-items:stretch;gap:2px}
+.col{flex:1 1 0;min-width:0;background:none;border:0;padding:0;cursor:pointer;display:flex;align-items:flex-end}
+.col i{display:block;width:100%;background:var(--bar);border-radius:4px 4px 0 0;min-height:0}
+.col:hover i,.col:focus-visible i,.col.sel i{background:var(--tape)}
+.cx{display:flex;gap:2px;margin-left:2.4rem;margin-top:.3rem;overflow:hidden}
+.cx span{flex:1 1 0;min-width:0;overflow:visible;white-space:nowrap;font:.7rem var(--mono);color:var(--muted)}
+.rchart{display:flex;flex-direction:column;gap:.55rem;margin-top:.6rem}
+.row{display:flex;flex-direction:column;gap:.25rem;min-width:0;max-width:100%;overflow:hidden;background:none;border:0;padding:0;text-align:left;cursor:pointer;width:100%}
+.row .rl{display:block;font-size:.9rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.row .rl b{font-weight:400;color:var(--ink)}
+.row .rl em{font:normal .78rem var(--mono);color:var(--muted)}
+.row i{display:block;height:.6rem;background:var(--bar);border-radius:0 4px 4px 0}
+.row:hover i,.row:focus-visible i{background:var(--tape)}
+.row:hover b{text-decoration:underline;text-decoration-color:var(--tape)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(8rem,1fr));gap:1rem;margin:1.6rem 0}
+.stat b{display:block;font:400 2rem/1 var(--display);font-variant-numeric:tabular-nums}
+.stat span{font-size:.85rem;color:var(--muted)}
+table.caps{width:100%;border-collapse:collapse;font-size:.9rem}
+table.caps th,table.caps td{text-align:left;padding:.45rem .6rem .45rem 0;border-bottom:1px solid var(--line);vertical-align:top}
+table.caps th{color:var(--muted);font-weight:400}
+table.caps td:nth-child(3),table.caps td:nth-child(4){font-variant-numeric:tabular-nums;white-space:nowrap}
+.scroll{overflow-x:auto}
+.linkbtn{background:none;border:0;padding:0;color:var(--glow);cursor:pointer;text-decoration:underline}
+.tip{position:fixed;z-index:40;pointer-events:none;background:var(--surface-2);color:var(--ink);border:1px solid var(--line);border-radius:.35rem;padding:.3rem .6rem;font-size:.82rem;max-width:18rem}
+footer{margin-top:4rem;padding-top:1rem;border-top:1px solid var(--line);font-size:.82rem;color:var(--muted);max-width:64ch}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+
+<div class="page">
+  <header class="mast">
+    <p class="word"><a href="#mixes">Low Light</a><small>listening room</small></p>
+    <nav class="tabs" aria-label="Sections">
+      <a href="#mixes" data-tab="mixes">Mixes</a>
+      <a href="#artists" data-tab="artists">Artists</a>
+      <a href="#ask" data-tab="ask">Ask</a>
+      <a href="#yours" data-tab="yours">Yours</a>
+      <a href="#listening" data-tab="listening">Listening</a>
+      <a href="#about" data-tab="about">About</a>
+    </nav>
+  </header>
+  <main id="main"></main>
+  <footer>Mixes, words and covers belong to <a href="https://lowlightmixes.blogspot.com" target="_blank" rel="noopener">Low Light Mixes</a>; the music belongs to its artists. This room only indexes what the blog publishes and links back to it, Mixcloud and the artists' pages.</footer>
+</div>
+<div class="player" id="player" hidden>
+  <div class="in">
+    <div class="now" id="pNow"></div>
+    <div class="ctl"><button type="button" id="pMc" aria-pressed="true">Mixcloud</button><button type="button" id="pMp3" aria-pressed="false">MP3</button><button type="button" id="pClose" aria-label="Close the player">✕</button></div>
+    <div class="slot" id="pSlot"></div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden role="status"></div>
+<div class="tip" id="tip" hidden role="tooltip"></div>
+
+<script>
+(function () {
+'use strict';
+var STANDALONE = !(window.claude && typeof window.claude.use === 'function');
+var $ = function (id) { return document.getElementById(id); };
+function h(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function okUrl(u) { return /^https?:\/\/[^\s"'<>]+$/i.test(String(u || '')) ? String(u).replace(/^http:/i, 'https:') : null; }
+function lsGet(k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+function toast(t, ms) { var el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(function () { el.hidden = true; }, ms || 3200); }
+function squash(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, ''); }
+function fmt(sec) { if (sec == null || !isFinite(sec)) return ''; sec = Math.round(sec); var hh = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60; return (hh ? hh + ':' + String(m).padStart(2, '0') : String(m).padStart(2, '0')) + ':' + String(s).padStart(2, '0'); }
+function dur(sec) { if (!sec) return ''; var m = Math.round(sec / 60); return m >= 60 ? Math.floor(m / 60) + ' h ' + (m % 60 ? m % 60 + ' min' : '') : m + ' min'; }
+function dateStr(iso) { var d = new Date(iso); return isFinite(d) ? d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }) : ''; }
+function ago(iso) { var t = Date.parse(iso); if (!isFinite(t)) return ''; var hr = Math.round((Date.now() - t) / 3600000); return hr < 1 ? 'less than an hour ago' : hr < 48 ? hr + ' hours ago' : Math.round(hr / 24) + ' days ago'; }
+var DAY = 86400000;
+
+// ------------------------------------------------------------ state
+var S = {
+  mixes: [], bySlug: {}, loaded: false, monitor: null, config: {},
+  db: null, uid: null, canEdit: false, sample: null,
+  memory: lsGet('lowlight-memory', { marks: {}, recent: [] }),
+  q: '', label: '', year: '', sort: 'new', shown: 48, artistQ: '', openArtist: null,
+  ask: { text: '', picks: null, status: '', reading: '' }
+};
+
+function setMixes(list) {
+  list.forEach(function (m) { m.tracks = Array.isArray(m.tracks) ? m.tracks : []; m.labels = Array.isArray(m.labels) ? m.labels : []; });
+  list.sort(function (a, b) { return String(b.published || '').localeCompare(String(a.published || '')); });
+  S.mixes = list; S.bySlug = {};
+  list.forEach(function (m, i) { m._i = i; S.bySlug[m.slug] = m; m._end = mixEnd(m); m._hay = squashHay(m); });
+  S._artists = null; S.loaded = true;
+  route();
+}
+function squashHay(m) {
+  return [m.title, m.labels.join(' '), m.intro, (m.ai && (m.ai.primaryMood + ' ' + (m.ai.moodTags || []).join(' ') + ' ' + (m.ai.descriptors || []).join(' '))) || '',
+    m.tracks.map(function (t) { return [t.artist, t.title, t.album].join(' '); }).join(' ')].join(' ').toLowerCase();
+}
+function mixEnd(m) {
+  var last = m.tracks.length ? m.tracks[m.tracks.length - 1].sec : null;
+  var e = m.endSec || (m.mixcloud && m.mixcloud.audioLength) || null;
+  if (e && last != null && e < last) e = null;
+  return e || (last != null ? last + 300 : null);
+}
+
+// ------------------------------------------------------------ memory (heard / favourite)
+function mark(slug) { var mk = S.memory.marks[slug] || {}; if (STANDALONE && !mk.heard) { var m = S.bySlug[slug]; if (m && listenedFrac(m) >= 0.6) return Object.assign({}, mk, { heard: true, auto: true }); } return mk; }
+var memBusy = false, memAgain = false;
+function saveMemory() {
+  lsSet('lowlight-memory', S.memory);
+  if (!S.db || !S.uid) return;
+  if (memBusy) { memAgain = true; return; }
+  memBusy = true;
+  S.db.doc('data/users/' + S.uid + '/memory').set(JSON.parse(JSON.stringify(S.memory)))
+    .catch(function () { toast('Saved in this browser only for now.'); })
+    .then(function () { memBusy = false; if (memAgain) { memAgain = false; saveMemory(); } });
+}
+function setMark(slug, key, on) {
+  var m = S.memory.marks[slug] = Object.assign({}, S.memory.marks[slug]);
+  m[key] = on; m.ts = new Date().toISOString();
+  if (!m.heard && !m.fav) delete S.memory.marks[slug];
+  saveMemory();
+}
+function noteOpened(slug) {
+  if (S.memory.recent && S.memory.recent[0] && S.memory.recent[0].slug === slug) return;
+  var r = (S.memory.recent || []).filter(function (x) { return x.slug !== slug; });
+  r.unshift({ slug: slug, at: new Date().toISOString() });
+  S.memory.recent = r.slice(0, 60);
+  saveMemory();
+}
+
+// ------------------------------------------------------------ covers
+function hashN(s) { var x = 2166136261; for (var i = 0; i < s.length; i++) { x ^= s.charCodeAt(i); x = Math.imul(x, 16777619); } return (x >>> 0) / 4294967295; }
+function coverSrc(m) {
+  if (m.artAsset) return m.artAsset;
+  if (STANDALONE) { if (m.artFile) return m.artFile; if (okUrl(m.coverUrl)) return okUrl(m.coverUrl); }
+  return null;
+}
+function coverHtml(m, eager) {
+  var src = coverSrc(m);
+  if (src) return '<div class="cover"><img src="' + h(src) + '" alt="Cover of ' + h(m.title) + '" data-slug="' + h(m.slug) + '"' + (eager ? '' : ' loading="lazy"') + '></div>';
+  return genCover(m);
+}
+function genCover(m) {
+  var a = Math.round(hashN(m.slug) * 360), b = Math.round(hashN(m.slug + 'x') * 360);
+  return '<div class="cover" role="img" aria-label="' + h(m.title) + ' (no cover copied yet)"><div class="gen" style="background:radial-gradient(circle at ' + Math.round(20 + hashN(m.slug + 'p') * 60) + '% 30%,hsl(' + a + ' 32% 42%),transparent 62%),linear-gradient(160deg,hsl(' + b + ' 28% 26%),#15141c)">' + h((m.title.replace(/^(the|a|an)\s+/i, '')[0] || '').toUpperCase()) + '</div></div>';
+}
+
+document.addEventListener('error', function (e) {
+  var im = e.target; if (!im || im.tagName !== 'IMG' || !im.dataset.slug) return;
+  var m = S.bySlug[im.dataset.slug], box = im.closest('.cover'); if (!m || !box) return;
+  if (STANDALONE && m.artFile && im.getAttribute('src') === m.artFile && okUrl(m.coverUrl)) { im.src = okUrl(m.coverUrl); return; }
+  var t = document.createElement('div'); t.innerHTML = genCover(m); box.replaceWith(t.firstChild);
+}, true);
+
+// ------------------------------------------------------------ links between pages and the player copy
+function pagesUrl() {
+  var r = S.config && S.config.repo;
+  if (!r || !/^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/.test(r)) return null;
+  var p = r.split('/');
+  return 'https://' + p[0].toLowerCase() + '.github.io/' + p[1] + '/';
+}
+function mixHash(m, sec) { return '#m-' + m.slug + (sec != null ? '--at-' + Math.round(sec) : ''); }
+function playerLink(m, sec) { var p = pagesUrl(); return p ? p + mixHash(m, sec) : null; }
+
+// ------------------------------------------------------------ routing
+function route() {
+  var hs = decodeURIComponent((location.hash || '').slice(1));
+  var tab = 'mixes', slug = null, at = null;
+  if (hs.indexOf('m-') === 0) {
+    var rest = hs.slice(2), mt = rest.match(/^(.*)--at-(\d+)$/);
+    if (mt) { slug = mt[1]; at = +mt[2]; } else slug = rest;
+    tab = 'mix';
+  } else if (/^(mixes|artists|ask|yours|listening|about)$/.test(hs)) tab = hs;
+  else if (hs.indexOf('ask-') === 0) { tab = 'ask'; var qq = hs.slice(4).replace(/-/g, ' ').trim(); if (qq && qq !== S.ask.text) { S.ask.text = qq; S._autoAsk = qq; } }
+  else if (hs.indexOf('label-') === 0) { S.label = hs.slice(6).replace(/-/g, ' '); S.q = ''; S.shown = 48; tab = 'mixes'; }
+  document.querySelectorAll('nav.tabs a').forEach(function (a) { a.setAttribute('aria-current', a.dataset.tab === tab ? 'page' : 'false'); });
+  var main = $('main');
+  if (tab === 'mix') renderMix(main, slug, at);
+  else if (tab === 'artists') renderArtists(main);
+  else if (tab === 'ask') renderAsk(main);
+  else if (tab === 'yours') renderYours(main);
+  else if (tab === 'about') renderAbout(main);
+  else if (tab === 'listening') renderListening(main);
+  else renderMixes(main);
+  S.tab = tab;
+}
+window.addEventListener('hashchange', function () { route(); window.scrollTo(0, 0); });
+
+function emptyState() {
+  if (!S.loaded) return '<div class="status"><i></i>Loading the mixes…</div>';
+  return '<div class="empty"><p class="spaced">N o &nbsp; m i x e s &nbsp; y e t</p><h2>The archive arrives with the first daily copy</h2><p>Once the GitHub check has read the blog, a daily Claude task copies every mix, tracklist and cover in here. ' + (STANDALONE ? 'The check has not written its first results yet.' : 'It needs the repository name first.') + '</p><p><a href="#about">See the setup steps</a></p></div>';
+}
+
+// ------------------------------------------------------------ MIXES
+function topLabels() {
+  var c = {}; S.mixes.forEach(function (m) { m.labels.forEach(function (l) { c[l] = (c[l] || 0) + 1; }); });
+  return Object.keys(c).sort(function (a, b) { return c[b] - c[a]; }).slice(0, 18).map(function (k) { return [k, c[k]]; });
+}
+function matches(m, q) {
+  if (!q) return { ok: true, hits: [] };
+  var words = q.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.every(function (w) { return m._hay.indexOf(w) >= 0; })) return { ok: false };
+  var hits = m.tracks.filter(function (t) { var s = [t.artist, t.title, t.album].join(' ').toLowerCase(); return words.some(function (w) { return w.length > 2 && s.indexOf(w) >= 0; }); }).slice(0, 3);
+  return { ok: true, hits: hits };
+}
+function filtered() {
+  var out = [];
+  S.mixes.forEach(function (m) {
+    if (S.label && m.labels.indexOf(S.label) < 0) return;
+    if (S.year && String(m.published || '').slice(0, 4) !== S.year) return;
+    var r = matches(m, S.q); if (!r.ok) return;
+    out.push({ m: m, hits: r.hits });
+  });
+  if (S.sort === 'old') out.reverse();
+  if (S.sort === 'long') out.sort(function (a, b) { return (b.m._end || 0) - (a.m._end || 0); });
+  if (S.sort === 'plays') out.sort(function (a, b) { return ((b.m.mixcloud || {}).plays || 0) - ((a.m.mixcloud || {}).plays || 0); });
+  return out;
+}
+function tsLink(m, t, cls) {
+  if (t.sec == null) return '<span class="ts' + (cls ? ' ' + cls : '') + '">' + (t.t ? h(t.t) : '·') + '</span>';
+  var c = 'ts' + (cls ? ' ' + cls : '');
+  if (!STANDALONE) { var pl = playerLink(m, t.sec); return pl ? '<a class="' + c + '" href="' + h(pl) + '" target="_blank" rel="noopener" title="Play from here (opens the player copy)">' + h(fmt(t.sec)) + '</a>' : '<a class="' + c + '" href="' + h(mixHash(m, t.sec)) + '">' + h(fmt(t.sec)) + '</a>'; }
+  return '<a class="' + c + '" href="' + h(mixHash(m, t.sec)) + '" data-jump="' + h(m.slug) + '" data-sec="' + t.sec + '">' + h(fmt(t.sec)) + '</a>';
+}
+function cardHtml(m, hits) {
+  var mk = mark(m.slug);
+  return '<article class="card">' + '<a href="' + h(mixHash(m)) + '" tabindex="-1" aria-hidden="true">' + coverHtml(m) + '</a>' +
+    '<a class="t" href="' + h(mixHash(m)) + '">' + (mk.fav ? '<span class="mark-dot" title="Favourite"></span>' : '') + h(m.title) + '</a>' +
+    '<div class="meta">' + h([String(m.published || '').slice(0, 4), dur(m._end && m.tracks.length ? m._end : (m.mixcloud || {}).audioLength), m.tracks.length ? m.tracks.length + ' tracks' : 'no tracklist', mk.heard ? 'heard' : ''].filter(Boolean).join(' · ')) + '</div>' +
+    (hits && hits.length ? '<ul class="hits">' + hits.map(function (t) { return '<li>' + tsLink(m, t) + '<span>' + h([t.artist, t.title].filter(Boolean).join(' – ')) + '</span></li>'; }).join('') + '</ul>' : '') +
+    '</article>';
+}
+function renderMixes(main) {
+  if (!S.mixes.length) { main.innerHTML = '<section class="view">' + emptyState() + '</section>'; return; }
+  var latest = S.mixes[0];
+  var years = {}; S.mixes.forEach(function (m) { var y = String(m.published || '').slice(0, 4); if (y) years[y] = (years[y] || 0) + 1; });
+  var browsing = S.q || S.label || S.year;
+  main.innerHTML = '<section class="view">' +
+    (browsing ? '' : '<div class="hero">' + '<a href="' + h(mixHash(latest)) + '" tabindex="-1" aria-hidden="true">' + coverHtml(latest, true) + '</a><div><p class="spaced">L a t e s t &nbsp; m i x</p><h2><a href="' + h(mixHash(latest)) + '">' + h(latest.title) + '</a></h2><p>' + h(dateStr(latest.published)) + (latest.tracks.length ? ' · ' + latest.tracks.length + ' tracks' : '') + (latest._end ? ' · ' + dur(latest._end) : '') + '</p><p>' + h((latest.intro || '').split('\n')[0].slice(0, 220)) + '</p><div class="actions"><a class="btn primary" href="' + h(mixHash(latest)) + '">Open the tracklist</a></div></div></div>') +
+    '<div class="filters"><label class="sr" for="q">Search mixes, artists and tracks</label><input type="search" id="q" placeholder="Search ' + S.mixes.length + ' mixes, artists, tracks…" value="' + h(S.q) + '">' +
+    '<label class="sr" for="yr">Year</label><select id="yr"><option value="">All years</option>' + Object.keys(years).sort().reverse().map(function (y) { return '<option value="' + y + '"' + (S.year === y ? ' selected' : '') + '>' + y + ' (' + years[y] + ')</option>'; }).join('') + '</select>' +
+    '<label class="sr" for="srt">Order</label><select id="srt"><option value="new">Newest first</option><option value="old">Oldest first</option><option value="long">Longest first</option><option value="plays">Most played on Mixcloud</option></select></div>' +
+    '<div class="chips" id="chips">' + topLabels().map(function (l) { return '<button type="button" class="chip" data-label="' + h(l[0]) + '" aria-pressed="' + (S.label === l[0]) + '">' + h(l[0]) + '<em>' + l[1] + '</em></button>'; }).join('') + '</div>' +
+    '<p class="count" id="cnt"></p><div class="grid" id="grid"></div><button type="button" class="more" id="more" hidden>Show more</button></section>';
+  $('srt').value = S.sort;
+  drawGrid();
+  $('q').addEventListener('input', function () { S.q = this.value.trim(); S.shown = 48; drawGrid(); });
+  $('yr').addEventListener('change', function () { S.year = this.value; S.shown = 48; drawGrid(); });
+  $('srt').addEventListener('change', function () { S.sort = this.value; drawGrid(); });
+  $('chips').addEventListener('click', function (e) { var b = e.target.closest('[data-label]'); if (!b) return; S.label = S.label === b.dataset.label ? '' : b.dataset.label; S.shown = 48; renderMixes(main); });
+  $('more').addEventListener('click', function () { S.shown += 48; drawGrid(); });
+}
+function drawGrid() {
+  var list = filtered();
+  $('cnt').textContent = (S.q || S.label || S.year) ? list.length + (list.length === 1 ? ' mix' : ' mixes') + (S.label ? ' labelled ' + S.label : '') + (S.year ? ' from ' + S.year : '') + (S.q ? ' matching “' + S.q + '”' : '') : S.mixes.length + ' mixes, ' + S.mixes.filter(function (m) { return m.tracks.length; }).length + ' with tracklists';
+  $('grid').innerHTML = list.slice(0, S.shown).map(function (r) { return cardHtml(r.m, r.hits); }).join('') || '<p class="lede">Nothing matches. Try fewer words, or clear the label.</p>';
+  $('more').hidden = list.length <= S.shown;
+}
+
+// ------------------------------------------------------------ MIX PAGE
+function linkFor(t, links) {
+  if (!links || !links.length) return null;
+  var a = squash(t.artist), al = squash(t.album);
+  for (var i = 0; i < links.length; i++) {
+    var u = squash(decodeURIComponent(links[i].url || '').replace(/^https?:\/\/(www\.)?/, ''));
+    if ((a.length >= 4 && u.indexOf(a) >= 0) || (al.length >= 5 && u.indexOf(al) >= 0)) return okUrl(links[i].url);
+  }
+  return null;
+}
+function siteName(u) { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return u; } }
+var ICON_PLAY = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>';
+function renderMix(main, slug, at) {
+  if (!S.loaded) { main.innerHTML = '<section class="view">' + emptyState() + '</section>'; return; }
+  var m = S.bySlug[slug];
+  if (!m) { main.innerHTML = '<section class="view"><a class="back" href="#mixes">← All mixes</a><div class="empty" style="margin-top:1rem"><h2>That mix is not in the room</h2><p>It may not have been copied yet. Try the search on the Mixes page.</p></div></section>'; return; }
+  var mk = mark(m.slug), end = m._end, timed = m.tracks.filter(function (t) { return t.sec != null; });
+  var mc = okUrl(m.mixcloudUrl), mp3 = okUrl(m.mp3Url), post = okUrl(m.url), pl = playerLink(m);
+  var prev = S.mixes[m._i + 1], next = S.mixes[m._i - 1];
+  var acts = [];
+  if (STANDALONE) {
+    if (mc) acts.push('<button type="button" class="btn primary" data-play="mc">' + ICON_PLAY + 'Play on Mixcloud</button>');
+    if (mp3) acts.push('<button type="button" class="btn' + (mc ? '' : ' primary') + '" data-play="mp3">' + ICON_PLAY + 'Play the MP3</button>');
+  } else {
+    if (pl && (mc || mp3)) acts.push('<a class="btn primary" href="' + h(pl) + '" target="_blank" rel="noopener">' + ICON_PLAY + 'Play with jump-to-track</a>');
+    if (mc) acts.push('<a class="btn' + (pl ? '' : ' primary') + '" href="' + h(mc) + '" target="_blank" rel="noopener">Open on Mixcloud</a>');
+    if (mp3) acts.push('<a class="btn" href="' + h(mp3) + '" target="_blank" rel="noopener">MP3</a>');
+  }
+  if (post) acts.push('<a class="btn" href="' + h(post) + '" target="_blank" rel="noopener">Blog post</a>');
+  acts.push('<button type="button" class="btn" data-mark="heard" aria-pressed="' + !!mk.heard + '">Heard it</button>');
+  acts.push('<button type="button" class="btn" data-mark="fav" aria-pressed="' + !!mk.fav + '">Favourite</button>');
+
+  var facts = [dateStr(m.published), end && m.tracks.length ? dur(end) : (m.mixcloud && m.mixcloud.audioLength ? dur(m.mixcloud.audioLength) : ''), m.tracks.length ? m.tracks.length + ' tracks' : '', m.mixcloud && m.mixcloud.plays ? m.mixcloud.plays.toLocaleString() + ' plays on Mixcloud' : '', STANDALONE && listenStats().by[m.slug] ? 'you’ve listened ' + Math.round(listenStats().by[m.slug].sec / 60) + (m._end ? ' of ' + Math.round(m._end / 60) : '') + ' min' : ''].filter(Boolean);
+  var strip = '';
+  if (timed.length >= 2 && end) {
+    var segs = timed.map(function (t, i) { var nx = i + 1 < timed.length ? timed[i + 1].sec : end; return { t: t, w: Math.max(0, nx - t.sec) }; });
+    strip = '<div class="strip" id="strip" role="group" aria-label="Time strip: jump to a track">' + segs.map(function (s, i) {
+      var at2 = ' style="width:' + (s.w / end * 100).toFixed(3) + '%;--k:' + (18 + (i % 2) * 14) + '" data-sec="' + s.t.sec + '" title="' + h(fmt(s.t.sec) + '  ' + [s.t.artist, s.t.title].filter(Boolean).join(' – ')) + '" aria-label="' + h(fmt(s.t.sec) + ' ' + [s.t.artist, s.t.title].filter(Boolean).join(', ')) + '"';
+      var plk = !STANDALONE && playerLink(m, s.t.sec);
+      return plk ? '<a class="seg" href="' + h(plk) + '" target="_blank" rel="noopener"' + at2 + '></a>' : '<button type="button" class="seg"' + at2 + '></button>';
+    }).join('') + '<span class="head" id="head" hidden></span></div><div class="ticks"><span>00:00</span><span>' + fmt(end / 4) + '</span><span>' + fmt(end / 2) + '</span><span>' + fmt(end * 3 / 4) + '</span><span>' + fmt(end) + '</span></div>';
+  }
+  var tl = m.tracks.length ? '<ol class="tl" id="tl">' + m.tracks.map(function (t, i) {
+    var lk = linkFor(t, m.links);
+    return '<li data-i="' + i + '"' + (t.sec != null ? ' data-at="' + t.sec + '"' : '') + '>' + tsLink(m, t) + '<div><span class="who">' + h(t.artist || '') + '</span>' + (t.artist ? ' – ' : '') + '<span class="what">' + h(t.title || '') + '</span>' +
+      ((t.album || t.year || lk) ? '<span class="alb">' + h([t.album, t.year].filter(Boolean).join(', ')) + (lk ? ' <a href="' + h(lk) + '" target="_blank" rel="noopener">' + h(siteName(lk)) + '</a>' : '') + '</span>' : '') + '</div></li>';
+  }).join('') + '</ol>' : '<p class="note">No tracklist yet. The blog sometimes adds one later in the comments; the daily check looks there too.</p>';
+  var src = m.tracklistSource === 'comment' ? '<p class="note">Tracklist taken from a comment' + (m.tracklistComment && m.tracklistComment.author ? ' by ' + h(m.tracklistComment.author) : '') + (m.tracklistComment && m.tracklistComment.published ? ', ' + h(dateStr(m.tracklistComment.published)) : '') + '.</p>' : '';
+  var hint = timed.length ? (STANDALONE ? '<p class="note">Tap a time to jump there. Mixcloud sometimes refuses to skip ahead; then the MP3 takes over.</p>' : (pl ? '<p class="note">The times open the player copy of this room at that spot (this page can’t hold a player itself).</p>' : '<p class="note">The times can jump straight into the mix once the player copy is set up (see About).</p>')) : '';
+  var links = (m.links || []).filter(function (l) { return okUrl(l.url); });
+  var ai = m.ai && m.ai.summary ? '<section class="sect"><h2 class="spaced">I n &nbsp; s h o r t</h2><div class="mood"><p style="margin:0">' + h(m.ai.summary) + '</p>' + ([m.ai.primaryMood].concat(m.ai.moodTags || []).filter(Boolean).length ? '<div class="tags">' + [m.ai.primaryMood].concat(m.ai.moodTags || []).filter(Boolean).map(function (x) { return '<span>' + h(x) + '</span>'; }).join('') + '</div>' : '') + '<p class="note">Claude’s summary of the post, used by Ask to search. It hasn’t heard the mix.</p></div></section>' : '';
+
+  main.innerHTML = '<section class="view" aria-label="' + h(m.title) + '"><a class="back" href="#mixes">← All mixes</a>' +
+    '<div class="mixhead">' + coverHtml(m, true) + '<div><p class="spaced">' + h((m.published || '').slice(0, 4).split('').join(' ')) + '</p><h1>' + h(m.title) + '</h1><div class="facts">' + facts.map(function (f) { return '<span>' + h(f) + '</span>'; }).join('') + '</div>' +
+    (m.labels.length ? '<div class="labels">' + m.labels.map(function (l) { return '<a href="#label-' + h(l.replace(/\s+/g, '-')) + '">' + h(l) + '</a>'; }).join('') + '</div>' : '') +
+    '<div class="actions" id="acts">' + acts.join('') + '</div></div></div>' +
+    ai + (m.intro ? '<p class="intro">' + h(m.intro) + '</p>' : '') +
+    '<section class="cue"><h2 class="spaced">T r a c k l i s t</h2>' + strip + hint + src + tl + '</section>' +
+    (links.length ? '<section class="sect"><h2 class="spaced">L i n k s &nbsp; t o &nbsp; t h e &nbsp; m u s i c</h2><ul class="links">' + links.map(function (l) { var u = okUrl(l.url); return '<li><a href="' + h(u) + '" target="_blank" rel="noopener">' + h(l.text && !/^https?:/.test(l.text) ? l.text : u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')) + '</a></li>'; }).join('') + '</ul></section>' : '') +
+    '<nav class="pager">' + (prev ? '<a href="' + h(mixHash(prev)) + '"><small>Older</small>' + h(prev.title) + '</a>' : '<span></span>') + (next ? '<a href="' + h(mixHash(next)) + '" style="text-align:right"><small>Newer</small>' + h(next.title) + '</a>' : '') + '</nav></section>';
+
+  noteOpened(m.slug);
+  var ix = main.querySelector('.view');
+  ix.addEventListener('click', function (e) {
+    var mb = e.target.closest('[data-mark]');
+    if (mb) { var on = mb.getAttribute('aria-pressed') !== 'true'; mb.setAttribute('aria-pressed', on); setMark(m.slug, mb.dataset.mark, on); return; }
+    var pb = e.target.closest('[data-play]');
+    if (pb) { Player.open(m, pb.dataset.play, null); return; }
+    var sb = e.target.closest('#strip button.seg');
+    if (sb) { jump(m, +sb.dataset.sec); return; }
+  });
+  if (at != null) {
+    var li = main.querySelector('#tl li[data-at="' + at + '"]');
+    if (li) { li.classList.add('now'); setTimeout(function () { li.scrollIntoView({ block: 'center' }); }, 60); }
+    if (STANDALONE) {
+      var b = document.createElement('div'); b.className = 'actions';
+      b.innerHTML = '<button type="button" class="btn primary" id="playAt">' + ICON_PLAY + 'Play from ' + h(fmt(at)) + '</button>';
+      $('acts').after(b);
+      $('playAt').addEventListener('click', function () { jump(m, at); b.remove(); });
+    }
+  }
+  if (Player.mix === m) Player.paint();
+}
+function jump(m, sec) {
+  if (STANDALONE) { Player.open(m, null, sec); return; }
+  toast('Jumping into the mix needs the player copy. Set up the repository in About.');
+}
+document.addEventListener('click', function (e) {
+  if (!STANDALONE) return;
+  var a = e.target.closest('a[data-jump]');
+  if (!a) return;
+  var m = S.bySlug[a.dataset.jump]; if (!m) return;
+  e.preventDefault();
+  var sec = +a.dataset.sec;
+  if (location.hash.indexOf('#m-' + m.slug) !== 0 || S.tab !== 'mix') { location.hash = mixHash(m); setTimeout(function () { jump(m, sec); }, 40); }
+  else jump(m, sec);
+});
+
+// ------------------------------------------------------------ PLAYER (GitHub Pages copy only)
+var Player = {
+  mix: null, mode: null, widget: null, audio: null, pos: 0, pending: null, mcApi: null,
+  open: function (m, mode, sec) {
+    if (!STANDALONE) return;
+    var hasMc = !!okUrl(m.mixcloudUrl) && !!m.mixcloudKey, hasMp3 = !!okUrl(m.mp3Url);
+    if (!mode) mode = (this.mix === m && this.mode) ? this.mode : (hasMc ? 'mc' : 'mp3');
+    if (mode === 'mc' && !hasMc) mode = 'mp3';
+    if (mode === 'mp3' && !hasMp3) mode = hasMc ? 'mc' : null;
+    if (!mode) { toast('This mix has no player link.'); return; }
+    if (this.mix === m && this.mode === mode) { if (sec != null) this.seek(sec); else this.play(); return; }
+    this.close(true);
+    if (!this.mix || this.mix !== m) Log.start(m, mode); else if (Log.cur) Log.cur.src = mode;
+    this.mix = m; this.mode = mode; this.pos = sec || 0;
+    $('player').hidden = false;
+    $('pMc').hidden = !hasMc; $('pMp3').hidden = !hasMp3;
+    $('pMc').setAttribute('aria-pressed', mode === 'mc'); $('pMp3').setAttribute('aria-pressed', mode === 'mp3');
+    if (mode === 'mp3') {
+      var au = this.audio = document.createElement('audio');
+      au.controls = true; au.preload = 'metadata'; au.src = okUrl(m.mp3Url);
+      au.addEventListener('timeupdate', function () { Player.tick(au.currentTime, !au.paused); });
+      au.addEventListener('pause', function () { Log.flush(); });
+      $('pSlot').replaceChildren(au);
+      if (sec) au.currentTime = sec;
+      au.play().catch(function () {});
+      if (sec) au.addEventListener('loadedmetadata', function f() { au.removeEventListener('loadedmetadata', f); if (Math.abs(au.currentTime - sec) > 2) au.currentTime = sec; });
+    } else {
+      var ifr = document.createElement('iframe');
+      ifr.title = 'Mixcloud player: ' + m.title; ifr.allow = 'autoplay';
+      ifr.src = 'https://player-widget.mixcloud.com/widget/iframe/?hide_cover=1&mini=1&hide_artwork=1&autoplay=1&feed=' + encodeURIComponent(m.mixcloudKey);
+      $('pSlot').replaceChildren(ifr);
+      this.pending = sec;
+      loadMcApi().then(function (Mc) {
+        if (Player.mix !== m || !Mc) return;
+        var w = Player.widget = Mc.PlayerWidget(ifr);
+        w.ready.then(function () {
+          w.events.progress.on(function (p) { Player.tick(p); });
+          w.events.play.on(function () { Player.playing = true; if (Player.pending != null) { var s = Player.pending; Player.pending = null; setTimeout(function () { Player.seek(s); }, 300); } });
+          w.events.pause.on(function () { Player.playing = false; Log.flush(); });
+          w.play();
+        });
+      });
+    }
+    this.paint();
+  },
+  play: function () { if (this.audio) this.audio.play().catch(function () {}); else if (this.widget) this.widget.play(); },
+  seek: function (sec) {
+    var self = this, m = this.mix;
+    if (this.mode === 'mp3' && this.audio) { this.audio.currentTime = sec; this.audio.play().catch(function () {}); this.tick(sec); return; }
+    if (this.mode === 'mc') {
+      if (!this.widget || !this.playing) { this.pending = sec; if (this.widget) this.widget.play(); return; }
+      Promise.resolve(this.widget.seek(sec)).then(function (ok) {
+        if (ok === false) {
+          if (okUrl(m.mp3Url)) { toast('Mixcloud didn’t allow the jump, so the MP3 plays from ' + fmt(sec) + '.', 4200); self.open(m, 'mp3', sec); }
+          else toast('Mixcloud didn’t allow jumping in this mix.');
+        } else self.tick(sec);
+      }).catch(function () { if (okUrl(m.mp3Url)) self.open(m, 'mp3', sec); });
+    }
+  },
+  tick: function (pos, playing) { this.pos = pos; Log.tick(pos, playing == null ? this.playing : playing); this.paint(); },
+  paint: function () {
+    var m = this.mix; if (!m) return;
+    var cur = null; m.tracks.forEach(function (t, i) { if (t.sec != null && t.sec <= Player.pos + 0.5) cur = i; });
+    var t = cur != null ? m.tracks[cur] : null;
+    $('pNow').innerHTML = '<b>' + h(m.title) + '</b>' + (t ? ' · ' + h([t.artist, t.title].filter(Boolean).join(' – ')) : '') + ' · ' + fmt(this.pos);
+    if (S.tab === 'mix' && S.bySlug[m.slug] && location.hash.indexOf('#m-' + m.slug) === 0) {
+      document.querySelectorAll('#tl li').forEach(function (li) { li.classList.toggle('now', +li.dataset.i === cur); });
+      document.querySelectorAll('#strip .seg').forEach(function (b) { b.classList.toggle('now', t && +b.dataset.sec === t.sec); });
+      var hd = $('head'); if (hd && m._end) { hd.hidden = false; hd.style.left = Math.min(100, this.pos / m._end * 100) + '%'; }
+    }
+  },
+  close: function (keep) {
+    if (!keep) Log.end();
+    if (this.audio) { this.audio.pause(); this.audio.src = ''; }
+    this.audio = null; this.widget = null; this.pending = null; this.playing = false;
+    $('pSlot').replaceChildren();
+    if (!keep) { this.mix = null; this.mode = null; $('player').hidden = true; }
+  }
+};
+var mcApiP = null;
+function loadMcApi() {
+  if (window.Mixcloud) return Promise.resolve(window.Mixcloud);
+  if (mcApiP) return mcApiP;
+  mcApiP = new Promise(function (res) {
+    var s = document.createElement('script');
+    s.src = 'https://widget.mixcloud.com/media/js/widgetApi.js';
+    s.onload = function () { res(window.Mixcloud || null); };
+    s.onerror = function () { res(null); };
+    document.head.appendChild(s);
+  });
+  return mcApiP;
+}
+$('pMc').addEventListener('click', function () { if (Player.mix) Player.open(Player.mix, 'mc', Player.pos || null); });
+$('pMp3').addEventListener('click', function () { if (Player.mix) Player.open(Player.mix, 'mp3', Player.pos || null); });
+$('pClose').addEventListener('click', function () { Player.close(); });
+
+// ------------------------------------------------------------ LISTENING LOG (player copy only)
+// Sessions are kept in this browser and, when connected, in a private GitHub repository (log/YYYY-MM.json).
+var Log = {
+  data: lsGet('lowlight-log', { sessions: {}, pending: [] }),
+  cfg: lsGet('lowlight-gh', null),
+  cur: null, lastPos: null, lastFlush: 0, pushing: false, lastSync: lsGet('lowlight-gh-sync', null), err: '',
+  start: function (m, src) {
+    this.end();
+    this.cur = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), slug: m.slug, title: m.title, start: new Date().toISOString(), sec: 0, maxPos: 0, src: src };
+    this.lastPos = null;
+  },
+  tick: function (pos, playing) {
+    var c = this.cur; if (!c || !playing) { this.lastPos = pos; return; }
+    if (this.lastPos != null) { var d = pos - this.lastPos; if (d > 0 && d <= 5) c.sec += d; }
+    this.lastPos = pos; if (pos > c.maxPos) c.maxPos = pos;
+    if (Date.now() - this.lastFlush > 60000) this.flush();
+  },
+  flush: function () {
+    var c = this.cur; if (!c || c.sec < 30) return;
+    this.lastFlush = Date.now();
+    var s = this.data.sessions[c.id] = { slug: c.slug, title: c.title, start: c.start, sec: Math.round(c.sec), maxPos: Math.round(c.maxPos), src: c.src };
+    if (this.data.pending.indexOf(c.id) < 0) this.data.pending.push(c.id);
+    lsSet('lowlight-log', this.data);
+    S._listen = null;
+    this.push();
+    return s;
+  },
+  end: function () { this.flush(); this.cur = null; this.lastPos = null; },
+  api: function (path, opts) {
+    var c = this.cfg;
+    return fetch('https://api.github.com/repos/' + c.repo + path, Object.assign({ cache: 'no-store' }, opts || {}, { headers: Object.assign({ 'Authorization': 'Bearer ' + c.token, 'Accept': 'application/vnd.github+json' }, (opts && opts.headers) || {}) }));
+  },
+  b64d: function (s) { var b = atob(String(s).replace(/\s/g, '')), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return new TextDecoder().decode(u); },
+  b64e: function (s) { var u = new TextEncoder().encode(s), b = ''; for (var i = 0; i < u.length; i += 8192) b += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(b); },
+  push: async function () {
+    if (!this.cfg || this.pushing || !this.data.pending.length) return;
+    this.pushing = true;
+    try {
+      var byMonth = {}, self = this;
+      this.data.pending.forEach(function (id) { var s = self.data.sessions[id]; if (s) (byMonth[s.start.slice(0, 7)] = byMonth[s.start.slice(0, 7)] || []).push(id); });
+      for (var mo in byMonth) {
+        for (var attempt = 0; attempt < 2; attempt++) {
+          var path = '/contents/log/' + mo + '.json', r = await this.api(path), sha = null, file = { sessions: {} };
+          if (r.ok) { var j = await r.json(); sha = j.sha; try { file = JSON.parse(this.b64d(j.content)); } catch (e) {} }
+          else if (r.status !== 404) throw new Error('GitHub said ' + r.status + (r.status === 401 ? ' (the key is wrong or expired)' : r.status === 403 || r.status === 404 ? ' (the key can’t write to that repository)' : ''));
+          file.sessions = file.sessions || {};
+          byMonth[mo].forEach(function (id) { var a = file.sessions[id], b = self.data.sessions[id]; file.sessions[id] = a && a.sec > b.sec ? a : b; });
+          var put = await this.api(path, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'Listening log ' + mo, content: this.b64e(JSON.stringify(file, null, 1)), sha: sha || undefined }) });
+          if (put.ok) { this.data.pending = this.data.pending.filter(function (id) { return byMonth[mo].indexOf(id) < 0; }); break; }
+          if (put.status !== 409 && put.status !== 422) throw new Error('GitHub said ' + put.status);
+        }
+      }
+      this.lastSync = new Date().toISOString(); lsSet('lowlight-gh-sync', this.lastSync); this.err = '';
+      lsSet('lowlight-log', this.data);
+    } catch (e) { this.err = (e && e.message) || 'Could not reach GitHub'; }
+    this.pushing = false;
+    if (S.tab === 'listening') drawListening();
+  },
+  pull: async function () {
+    if (!this.cfg) return;
+    try {
+      var r = await this.api('/contents/log');
+      if (r.status === 404) { this.err = ''; return; }
+      if (!r.ok) throw new Error('GitHub said ' + r.status + (r.status === 401 ? ' (the key is wrong or expired)' : ''));
+      var files = (await r.json()).filter(function (f) { return /^\d{4}-\d{2}\.json$/.test(f.name); }), self = this;
+      for (var i = 0; i < files.length; i++) {
+        var fr = await this.api('/contents/log/' + files[i].name); if (!fr.ok) continue;
+        var fj = await fr.json(), file = {}; try { file = JSON.parse(this.b64d(fj.content)); } catch (e) {}
+        Object.keys(file.sessions || {}).forEach(function (id) { var a = self.data.sessions[id], b = file.sessions[id]; if (!a || (b.sec > a.sec)) self.data.sessions[id] = b; });
+      }
+      lsSet('lowlight-log', this.data); this.err = ''; this.lastSync = new Date().toISOString(); lsSet('lowlight-gh-sync', this.lastSync); S._listen = null;
+    } catch (e) { this.err = (e && e.message) || 'Could not reach GitHub'; }
+    if (S.tab === 'listening') drawListening();
+    if (S.tab === 'mix') route();
+  }
+};
+setInterval(function () { if (STANDALONE) Log.push(); }, 120000);
+if (STANDALONE) window.__lowlight = { Log: Log, S: S, mark: function (x) { return mark(x); } };
+document.addEventListener('visibilitychange', function () { if (document.hidden && STANDALONE) Log.flush(); });
+window.addEventListener('pagehide', function () { if (STANDALONE) { Log.flush(); } });
+
+function listenStats() {
+  if (S._listen) return S._listen;
+  var by = {}, ss = Object.keys(Log.data.sessions).map(function (id) { var s = Log.data.sessions[id]; s.id = id; return s; });
+  ss.forEach(function (s) { var b = by[s.slug] = by[s.slug] || { sec: 0, n: 0, maxPos: 0, last: '' }; b.sec += s.sec; b.n++; if (s.maxPos > b.maxPos) b.maxPos = s.maxPos; if (s.start > b.last) b.last = s.start; });
+  ss.sort(function (a, b) { return b.start.localeCompare(a.start); });
+  return (S._listen = { sessions: ss, by: by });
+}
+function listenedFrac(m) { var b = listenStats().by[m.slug]; return b && m._end ? Math.min(1, b.sec / m._end) : 0; }
+
+// --- charts (single series, inline SVG, one accent hue) ---
+function barPath(x, y, w, hgt) { var r = Math.min(4, w / 2, hgt); if (hgt <= 0) return ''; return 'M' + x + ',' + (y + hgt) + 'V' + (y + r) + 'Q' + x + ',' + y + ' ' + (x + r) + ',' + y + 'H' + (x + w - r) + 'Q' + (x + w) + ',' + y + ' ' + (x + w) + ',' + (y + r) + 'V' + (y + hgt) + 'Z'; }
+function hbarPath(x, y, w, hgt) { var r = Math.min(4, hgt / 2, w); if (w <= 0) return ''; return 'M' + x + ',' + y + 'H' + (x + w - r) + 'Q' + (x + w) + ',' + y + ' ' + (x + w) + ',' + (y + r) + 'V' + (y + hgt - r) + 'Q' + (x + w) + ',' + (y + hgt) + ' ' + (x + w - r) + ',' + (y + hgt) + 'H' + x + 'Z'; }
+function niceMax(v) { if (v <= 0) return 10; var p = Math.pow(10, Math.floor(Math.log10(v))), n = v / p; return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p; }
+function colChart(items, opts) {
+  // items: [{key, label, value, tip, sel}] -> HTML columns (text stays readable at any width)
+  var max = niceMax(Math.max.apply(null, items.map(function (i) { return i.value; }).concat([0])));
+  return '<div class="cchart" role="group" aria-label="' + h(opts.title) + '"><div class="cplot">' +
+    [1, 0.5, 0].map(function (f) { return '<span class="gl" style="bottom:' + (f * 100) + '%"><em>' + Math.round(max * f) + '</em></span>'; }).join('') +
+    '<div class="ccols">' + items.map(function (it) {
+      return '<button type="button" class="hit col' + (it.sel ? ' sel' : '') + '" data-k="' + h(it.key) + '" data-tip="' + h(it.tip) + '" aria-label="' + h(it.tip) + '"><i style="height:' + (it.value / max * 100).toFixed(2) + '%"></i></button>';
+    }).join('') + '</div></div><div class="cx">' + items.map(function (it) { return '<span>' + h(it.label || '') + '</span>'; }).join('') + '</div></div>';
+}
+function rowChart(items, opts) {
+  var max = Math.max.apply(null, items.map(function (i) { return i.value; }).concat([1]));
+  return '<div class="rchart" role="group" aria-label="' + h(opts.title) + '">' + items.map(function (it) {
+    return '<button type="button" class="hit row" data-k="' + h(it.key) + '" data-tip="' + h(it.tip) + '" aria-label="' + h(it.tip) + '"><span class="rl"><b>' + h(it.label) + '</b> <em>' + h(it.valueLabel) + '</em></span><i style="width:' + Math.max(1, it.value / max * 100).toFixed(2) + '%"></i></button>';
+  }).join('') + '</div>';
+}
+function weekStart(d) { var x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
+
+function renderListening(main) {
+  if (!STANDALONE) {
+    var pu = pagesUrl();
+    main.innerHTML = '<section class="view"><h1 class="v">Listening</h1><p class="lede">Your listening history and its charts live in the player copy of this room, because that’s where the mixes play. It saves to a private GitHub repository only you can read, so this page never needs your GitHub key.</p>' + (pu ? '<p><a class="btn primary" href="' + h(pu + '#listening') + '" target="_blank" rel="noopener">Open your listening in the player copy</a></p>' : '<p class="note">Set up the player copy first (see About).</p>') + '</section>';
+    return;
+  }
+  main.innerHTML = '<section class="view"><h1 class="v">Listening</h1><p class="lede">What you’ve played here, how long, and how far in. Counted only while a mix is actually playing; sessions under 30 seconds are left out.</p><div id="lsBody"></div></section>';
+  S.lsSel = S.lsSel || null;
+  drawListening();
+  if (Log.cfg && !S._pulled) { S._pulled = true; Log.pull(); }
+}
+function drawListening() {
+  var box = $('lsBody'); if (!box) return;
+  var st = listenStats(), ss = st.sessions, cfg = Log.cfg;
+  var conn = '<div class="panel"><h3>Where it’s saved</h3>' + (cfg ? '<p class="state ' + (Log.err ? 'warn' : 'ok') + '"><i></i>' + (Log.err ? h(Log.err) : 'Saving to your private repository <code>' + h(cfg.repo) + '</code>' + (Log.lastSync ? ', last synced ' + ago(Log.lastSync) : '') + (Log.data.pending.length ? ' · ' + Log.data.pending.length + ' waiting to upload' : '') + '.') + '</p><div class="inrow"><button type="button" class="btn" id="lsSync">Sync now</button><button type="button" class="btn" id="lsOff">Disconnect this browser</button></div>'
+    : '<p class="state"><i></i>Saved in this browser only. Connect a private GitHub repository to keep it safe and see it on every device.</p>' +
+      '<details class="desc"><summary>How to connect (5 minutes, once per device)</summary><ol class="steps"><li>On GitHub, create a new <b>private</b> repository, e.g. <code>lowlight-listening</code>, and tick “Add a README file”.</li><li>Go to <b>Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token</b>. Repository access: <b>Only select repositories</b> → <code>lowlight-listening</code>. Permissions → Repository → <b>Contents: Read and write</b>. Generate and copy it.</li><li>Paste both below and press Connect. The key stays in this browser only; it can open nothing but that one repository.</li></ol></details>' +
+      '<form class="inrow" id="lsF"><label class="sr" for="lsRepo">Private repository (owner/name)</label><input id="lsRepo" placeholder="alexstirling2016/lowlight-listening" autocomplete="off" spellcheck="false"><label class="sr" for="lsTok">GitHub key</label><input id="lsTok" type="password" placeholder="github_pat_…" autocomplete="off"><button class="btn primary" type="submit">Connect</button></form><p class="msg" id="lsMsg" aria-live="polite"></p>') + '</div>';
+  if (!ss.length) { box.innerHTML = conn + '<div class="empty"><h2>Nothing played yet</h2><p>Play any mix here; the charts fill in as you listen.</p></div>'; bindLs(); return; }
+  var tot = ss.reduce(function (a, s) { return a + s.sec; }, 0), mixesN = Object.keys(st.by).length;
+  var finished = Object.keys(st.by).filter(function (k) { var m = S.bySlug[k]; return m && m._end && st.by[k].sec >= m._end * 0.9; }).length;
+  // weeks
+  var now = weekStart(new Date()), weeks = [];
+  for (var i = 25; i >= 0; i--) { var w = new Date(now); w.setDate(w.getDate() - i * 7); weeks.push({ d: w, sec: 0, key: 'w' + w.toISOString().slice(0, 10) }); }
+  ss.forEach(function (s) { var k = 'w' + weekStart(new Date(s.start)).toISOString().slice(0, 10); weeks.forEach(function (w) { if (w.key === k) w.sec += s.sec; }); });
+  var wk = colChart(weeks.map(function (w, i) { return { key: w.key, value: Math.round(w.sec / 60), label: (i % 4 === 0) ? w.d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : '', tip: 'Week of ' + w.d.toLocaleDateString(undefined, { day: 'numeric', month: 'long' }) + ': ' + Math.round(w.sec / 60) + ' min', sel: S.lsSel === w.key }; }), { title: 'Minutes listened per week' });
+  var hours = []; for (var hh = 0; hh < 24; hh++) hours.push({ key: 'h' + hh, sec: 0 });
+  ss.forEach(function (s) { hours[new Date(s.start).getHours()].sec += s.sec; });
+  var hr = colChart(hours.map(function (x, i) { return { key: x.key, value: Math.round(x.sec / 60), label: i % 6 === 0 ? String(i).padStart(2, '0') + ':00' : '', tip: String(i).padStart(2, '0') + ':00–' + String(i + 1).padStart(2, '0') + ':00: ' + Math.round(x.sec / 60) + ' min', sel: S.lsSel === x.key }; }), { title: 'Minutes by hour of day' });
+  var top = Object.keys(st.by).filter(function (k) { return S.bySlug[k]; }).sort(function (a, b) { return st.by[b].sec - st.by[a].sec; }).slice(0, 10);
+  var tm = rowChart(top.map(function (k) { var b = st.by[k], m = S.bySlug[k]; return { key: 'm' + k, value: b.sec, label: m.title.length > 46 ? m.title.slice(0, 45) + '…' : m.title, valueLabel: Math.round(b.sec / 60) + ' min' + (b.n > 1 ? ' · ' + b.n + ' plays' : ''), tip: m.title + ': ' + Math.round(b.sec / 60) + ' min over ' + b.n + (b.n === 1 ? ' session' : ' sessions') }; }), { title: 'Most played mixes' });
+  var labs = {}; ss.forEach(function (s) { var m = S.bySlug[s.slug]; if (m) m.labels.forEach(function (l) { labs[l] = (labs[l] || 0) + s.sec; }); });
+  var tl = Object.keys(labs).sort(function (a, b) { return labs[b] - labs[a]; }).slice(0, 8);
+  var lc = tl.length ? rowChart(tl.map(function (l) { return { key: 'l' + l, value: labs[l], label: l, valueLabel: Math.round(labs[l] / 60) + ' min', tip: l + ': ' + Math.round(labs[l] / 60) + ' min' }; }), { title: 'Minutes by blog label' }) : '<p class="note">No labels yet.</p>';
+  var sel = S.lsSel, list = ss.filter(function (s) {
+    if (!sel) return true;
+    if (sel[0] === 'w') return 'w' + weekStart(new Date(s.start)).toISOString().slice(0, 10) === sel;
+    if (sel[0] === 'h') return new Date(s.start).getHours() === +sel.slice(1);
+    return true;
+  });
+  box.innerHTML = conn +
+    '<div class="stats"><div class="stat"><b>' + (tot / 3600).toFixed(1) + '</b><span>hours listened</span></div><div class="stat"><b>' + mixesN + '</b><span>mixes played</span></div><div class="stat"><b>' + finished + '</b><span>heard to the end</span></div><div class="stat"><b>' + ss.length + '</b><span>sessions</span></div></div>' +
+    '<section class="sect"><h2 class="spaced">P e r &nbsp; w e e k</h2><p class="note">Minutes per week, last 26 weeks. Tap a week to see its sessions.</p>' + wk + '</section>' +
+    '<section class="sect"><h2 class="spaced">M o s t &nbsp; p l a y e d</h2><p class="note">Tap a mix to open it.</p>' + tm + '</section>' +
+    '<section class="sect"><h2 class="spaced">B y &nbsp; l a b e l</h2><p class="note">The blog’s labels of what you play. Tap one to browse that label.</p>' + lc + '</section>' +
+    '<section class="sect"><h2 class="spaced">T i m e &nbsp; o f &nbsp; d a y</h2><p class="note">When you start listening. Tap an hour to see those sessions.</p>' + hr + '</section>' +
+    '<section class="sect" id="lsList"><h2 class="spaced">S e s s i o n s</h2>' + (sel ? '<p class="note">Filtered: ' + h(sel[0] === 'w' ? 'week of ' + new Date(sel.slice(1)).toLocaleDateString(undefined, { day: 'numeric', month: 'long' }) : String(+sel.slice(1)).padStart(2, '0') + ':00–' + String(+sel.slice(1) + 1).padStart(2, '0') + ':00') + ' · <button type="button" class="linkbtn" id="lsAll">show all</button></p>' : '') +
+    '<div class="scroll"><table class="caps"><thead><tr><th>When</th><th>Mix</th><th>Listened</th><th>Reached</th></tr></thead><tbody>' + list.slice(0, 200).map(function (s) { var m = S.bySlug[s.slug]; return '<tr><td>' + h(new Date(s.start).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) + '</td><td>' + (m ? '<a href="' + h(mixHash(m)) + '">' + h(m.title) + '</a>' : h(s.title || s.slug)) + '</td><td>' + Math.round(s.sec / 60) + ' min</td><td>' + h(fmt(s.maxPos)) + (m && m._end ? ' of ' + h(fmt(m._end)) : '') + '</td></tr>'; }).join('') + '</tbody></table></div></section>';
+  bindLs();
+}
+function bindLs() {
+  var box = $('lsBody'); if (!box) return;
+  var f = $('lsF');
+  if (f) f.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var repo = $('lsRepo').value.trim().replace(/^https?:\/\/github\.com\//i, '').replace(/\/+$/, ''), tok = $('lsTok').value.trim(), msg = $('lsMsg');
+    if (!/^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/.test(repo)) { msg.className = 'msg err'; msg.textContent = 'Write the repository as owner/name.'; return; }
+    if (tok.length < 20) { msg.className = 'msg err'; msg.textContent = 'Paste the whole key.'; return; }
+    msg.className = 'msg'; msg.textContent = 'Checking…';
+    try {
+      var r = await fetch('https://api.github.com/repos/' + repo, { headers: { 'Authorization': 'Bearer ' + tok, 'Accept': 'application/vnd.github+json' } });
+      if (!r.ok) throw new Error(r.status === 401 ? 'GitHub didn’t accept that key.' : r.status === 404 ? 'That key can’t see ' + repo + '. Check the name, and that the key was given access to it.' : 'GitHub said ' + r.status + '.');
+      var j = await r.json();
+      if (!j.private) throw new Error('That repository is public, so your listening would be visible to anyone. Make it private (Settings → General → Danger zone) and try again.');
+      Log.cfg = { repo: repo, token: tok }; lsSet('lowlight-gh', Log.cfg);
+      msg.className = 'msg good'; msg.textContent = 'Connected.';
+      await Log.pull(); await Log.push(); drawListening();
+    } catch (err) { msg.className = 'msg err'; msg.textContent = err.message; }
+  });
+  var sy = $('lsSync'); if (sy) sy.addEventListener('click', async function () { sy.disabled = true; await Log.push(); await Log.pull(); });
+  var off = $('lsOff'); if (off) off.addEventListener('click', function () { Log.cfg = null; try { localStorage.removeItem('lowlight-gh'); } catch (e) {} drawListening(); });
+  var all = $('lsAll'); if (all) all.addEventListener('click', function () { S.lsSel = null; drawListening(); });
+  box.querySelectorAll('.hit').forEach(function (g) {
+    function go() {
+      var k = g.dataset.k;
+      if (k[0] === 'm') { location.hash = mixHash(S.bySlug[k.slice(1)]); return; }
+      if (k[0] === 'l') { location.hash = '#label-' + k.slice(1).replace(/\s+/g, '-'); return; }
+      S.lsSel = S.lsSel === k ? null : k; drawListening();
+      var l = $('lsList'); if (l && S.lsSel) l.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }
+    g.addEventListener('click', go);
+    g.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+    g.addEventListener('pointerenter', function (e) { showTip(g.dataset.tip, e); });
+    g.addEventListener('pointermove', function (e) { showTip(g.dataset.tip, e); });
+    g.addEventListener('pointerleave', hideTip);
+    g.addEventListener('focus', function () { var r = g.getBoundingClientRect(); showTip(g.dataset.tip, { clientX: r.left + r.width / 2, clientY: r.top }); });
+    g.addEventListener('blur', hideTip);
+  });
+}
+function showTip(t, e) { var el = $('tip'); el.textContent = t; el.hidden = false; var x = Math.min(window.innerWidth - el.offsetWidth - 8, Math.max(8, e.clientX - el.offsetWidth / 2)); el.style.left = x + 'px'; el.style.top = Math.max(8, e.clientY - el.offsetHeight - 12) + 'px'; }
+function hideTip() { $('tip').hidden = true; }
+window.addEventListener('scroll', function () { var t = $('tip'); if (t && !t.hidden) t.hidden = true; }, { passive: true });
+window.addEventListener('hashchange', function () { var t = $('tip'); if (t) t.hidden = true; });
+
+// ------------------------------------------------------------ ARTISTS
+function artistIndex() {
+  if (S._artists) return S._artists;
+  var idx = {};
+  S.mixes.forEach(function (m) {
+    m.tracks.forEach(function (t) {
+      if (!t.artist) return;
+      var names = t.artist.split(/\s+(?:&|and|with|feat\.?|ft\.?|x|vs\.?)\s+|\s*,\s*|\s*\/\s*/i).map(function (s) { return s.trim(); }).filter(function (s) { return s.length > 1; });
+      names.forEach(function (n) {
+        var k = squash(n); if (!k) return;
+        var a = idx[k] = idx[k] || { name: n, apps: [], mixes: {} };
+        a.apps.push({ m: m, t: t }); a.mixes[m.slug] = 1;
+      });
+    });
+  });
+  S._artists = Object.keys(idx).map(function (k) { var a = idx[k]; a.key = k; a.n = Object.keys(a.mixes).length; return a; })
+    .sort(function (a, b) { return b.n - a.n || a.name.localeCompare(b.name); });
+  return S._artists;
+}
+function renderArtists(main) {
+  if (!S.mixes.length) { main.innerHTML = '<section class="view">' + emptyState() + '</section>'; return; }
+  var all = artistIndex();
+  main.innerHTML = '<section class="view"><h1 class="v">Artists</h1><p class="lede">Every artist named in a tracklist, by how many mixes they appear in. Open one to see each appearance; the times jump straight to that spot.</p>' +
+    '<div class="filters"><label class="sr" for="aq">Find an artist</label><input type="search" id="aq" placeholder="Find among ' + all.length.toLocaleString() + ' artists…" value="' + h(S.artistQ) + '"></div><div class="alist" id="alist"></div></section>';
+  function draw() {
+    var q = squash(S.artistQ);
+    var list = q ? all.filter(function (a) { return a.key.indexOf(q) >= 0; }) : all;
+    $('alist').innerHTML = list.slice(0, 150).map(function (a) {
+      var open = S.openArtist === a.key;
+      return '<div class="arow"><button type="button" data-a="' + h(a.key) + '" aria-expanded="' + open + '"><b>' + h(a.name) + '</b><span>' + a.n + (a.n === 1 ? ' mix' : ' mixes') + '</span></button>' +
+        (open ? '<ul>' + a.apps.map(function (x) { return '<li>' + tsLink(x.m, x.t) + '<span>' + h(x.t.title || '') + ' <small>in</small> <a href="' + h(mixHash(x.m)) + '">' + h(x.m.title) + '</a> <small>' + h(String(x.m.published || '').slice(0, 4)) + '</small></span></li>'; }).join('') + '</ul>' : '') + '</div>';
+    }).join('') + (list.length > 150 ? '<p class="note">Showing 150 of ' + list.length + '. Type a name to narrow it.</p>' : '') + (!list.length ? '<p class="lede">No artist by that name in the tracklists.</p>' : '');
+  }
+  draw();
+  $('aq').addEventListener('input', function () { S.artistQ = this.value; draw(); });
+  $('alist').addEventListener('click', function (e) { var b = e.target.closest('[data-a]'); if (!b) return; S.openArtist = S.openArtist === b.dataset.a ? null : b.dataset.a; draw(); });
+}
+
+// ------------------------------------------------------------ ASK
+var SYN = { space: 'cosmic space sci-fi kosmische berlin', cosmic: 'cosmic space kosmische', night: 'night dark nocturnal late', sleep: 'sleep drone calm ambient', calm: 'calm ambient serene', rain: 'rain water storm', water: 'water rain ocean sea', autumn: 'autumn fall autumnal', winter: 'winter snow cold', summer: 'summer sun', piano: 'piano modern classical', classical: 'classical modern', dark: 'dark ominous dystopian', sad: 'melancholic melancholy sad', synth: 'synth electronic berlin school sequencer', sequencer: 'berlin school sequences sequencer', folk: 'folk acoustic guitar', guitar: 'guitar folk', drone: 'drone ambient', dream: 'dream dreamy dreamlike', radio: 'shortwave radio static', static: 'static shortwave noise' };
+function tagsOf(m) { return ((m.mixcloud && m.mixcloud.tags) || []).map(function (t) { return String(t).toLowerCase(); }); }
+function localRank(text) {
+  var words = text.toLowerCase().replace(/[^a-z0-9À-ɏ\s-]/g, ' ').split(/\s+/).filter(function (w) { return w.length > 2 && !/^(the|and|for|something|with|some|that|this|music|mix|mixes|want|like|really|very|while|into|from|just|more|less|not|but|please|good|nice)$/.test(w); });
+  var ex = []; words.forEach(function (w) { ex.push(w); var k = Object.keys(SYN).find(function (s) { return w.indexOf(s) === 0; }); if (k) SYN[k].split(' ').forEach(function (x) { ex.push(x); }); });
+  S.ask._words = ex;
+  return S.mixes.map(function (m) {
+    var sc = 0, ti = m.title.toLowerCase(), desc = (m.intro || '').toLowerCase();
+    var lab = m.labels.join(' ').toLowerCase() + ' ' + tagsOf(m).join(' ');
+    var mood = m.ai ? [m.ai.primaryMood].concat(m.ai.moodTags || [], m.ai.descriptors || []).join(' ').toLowerCase() : '';
+    // Order of evidence (the user's rule): description and title, then the author's own labels and Mixcloud tags, then mood readings.
+    ex.forEach(function (w, i) {
+      var wt = i < words.length ? 1 : 0.5, n = desc.split(w).length - 1;
+      if (n) sc += Math.min(n, 3) * 3 * wt;
+      if (ti.indexOf(w) >= 0) sc += 3 * wt;
+      if (lab.indexOf(w) >= 0) sc += 2.5 * wt;
+      if (mood.indexOf(w) >= 0) sc += 1.5 * wt;
+    });
+    return { m: m, sc: sc };
+  }).filter(function (r) { return r.sc > 0; }).sort(function (a, b) { return b.sc - a.sc; });
+}
+var EXAMPLES = ['Slow, spacey Berlin School for a late drive', 'Something autumnal and folky for a grey Sunday', 'Dark, cinematic drones, a bit sci-fi', 'Gentle piano and modern classical for reading', 'A long ambient mix to fall asleep to'];
+function renderAsk(main) {
+  if (!S.mixes.length) { main.innerHTML = '<section class="view">' + emptyState() + '</section>'; return; }
+  main.innerHTML = '<section class="view"><h1 class="v">What should tonight sound like?</h1><p class="lede">Describe a mood, a setting or a sound.' + (!STANDALONE ? ' Claude scans a summary of every mix with its labels and Mixcloud tags, then reads the full descriptions of the closest ones and tells you why it chose each.' : ' The room matches your words against every mix’s description, title, labels and tags.') + '</p>' +
+    '<form class="askbox" id="askF"><label class="sr" for="askT">Describe what you want to hear</label><textarea id="askT" placeholder="Slow, spacey synths for a late drive, nothing too dark…">' + h(S.ask.text) + '</textarea><div class="askrow"><span class="note" id="askN" style="margin:0">' + (STANDALONE ? 'This copy matches words only; the room on claude.ai can ask Claude.' : '') + '</span><button class="btn primary" type="submit">Find mixes</button></div></form>' +
+    '<div class="examples">' + EXAMPLES.map(function (x, i) { return '<button type="button" class="chip" data-ex="' + i + '">' + h(x) + '</button>'; }).join('') + '</div><div id="askOut"></div></section>';
+  $('askF').addEventListener('submit', function (e) { e.preventDefault(); runAsk($('askT').value.trim()); });
+  main.querySelector('.examples').addEventListener('click', function (e) { var b = e.target.closest('[data-ex]'); if (!b) return; $('askT').value = EXAMPLES[+b.dataset.ex]; runAsk(EXAMPLES[+b.dataset.ex]); });
+  $('askOut').addEventListener('click', function (e) { var b = e.target.closest('[data-stop]'); if (b && askCtl) { askCtl.abort(); S.ask.status = 'stopped'; drawAsk(); } });
+  drawAsk();
+  if (S._autoAsk) { var q0 = S._autoAsk; S._autoAsk = null; runAsk(q0); }
+}
+var ROOM_URL = 'https://claude.ai/artifact/YD93cCn7fCKQG9Kc1SLQ4a';
+function askSlug(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 180); }
+var askCtl = null;
+var ASK_RULES = 'HOW TO JUDGE (the listener\'s own rules): The blog author\'s description of each mix, together with its title, is the main evidence of its mood, setting and sound. Next come the author\'s own blog labels and Mixcloud tags, which are good indicators. Mood readings, where present, were written by Claude from the description and are secondary. Use the tracklist only for songs or artists you actually know, and say so; never infer mood from a track title alone, because song titles can mislead (when a mix is built around words in its track titles, the description says so). Never invent a sound or fact the data does not support. Do not favour or avoid mixes the listener has marked as heard; use that mark only if the listener asks for something new to them, or for something they already know.';
+function catLine(m) {
+  return { n: m._i, t: m.title, y: String(m.published || '').slice(0, 4), l: m.labels, mc: tagsOf(m).length ? tagsOf(m) : undefined, d: (m.ai && m.ai.summary) ? m.ai.summary : (m.intro || '').replace(/\s+/g, ' ').slice(0, 160), h: mark(m.slug).heard ? 1 : undefined };
+}
+function fullCard(m) {
+  var arts = []; m.tracks.forEach(function (t) { if (t.artist && arts.indexOf(t.artist) < 0) arts.push(t.artist); });
+  return { slug: m.slug, title: m.title, year: String(m.published || '').slice(0, 4), length: dur(m._end), labels: m.labels, mixcloudTags: tagsOf(m), description: (m.intro || '').slice(0, 6000), mood: m.ai ? { primary: m.ai.primaryMood, tags: m.ai.moodTags, words: m.ai.descriptors } : undefined, tracks: m.tracks.slice(0, 30).map(function (t) { return [t.artist, t.title].filter(Boolean).join(' - '); }), heard: mark(m.slug).heard || undefined };
+}
+function fitCat(lines, maxBytes) {
+  var s = JSON.stringify(lines);
+  while (s.length * 1.15 > maxBytes && lines[0] && lines[0].d.length > 20) { lines.forEach(function (x) { x.d = x.d.slice(0, Math.floor(x.d.length * 0.7)); }); s = JSON.stringify(lines); }
+  return s;
+}
+async function askClaude(prompt, opts, ctl) {
+  return S.sample.json(prompt, Object.assign({ signal: ctl.signal }, opts));
+}
+async function runAsk(text) {
+  if (!text) return;
+  if (askCtl) askCtl.abort();
+  S.ask = { text: text, picks: null, status: '', reading: '', err: '' };
+  var ranked = localRank(text);
+  S.ask.picks = ranked.slice(0, 5).map(function (r) { return { m: r.m, why: whyLocal(r.m, text) }; });
+  if (!STANDALONE && !S.sample && S.sampleP) { S.ask.status = 'wait'; drawAsk(); try { S.sample = await S.sampleP; } catch (e) {} if (S.ask.text !== text) return; }
+  if (!S.sample) { S.ask.status = STANDALONE ? 'standalone' : 'nosample'; drawAsk(); return; }
+  var ctl = askCtl = new AbortController();
+  var cap = 150000;
+  try { var lim = await S.sample.limits(); if (lim && lim.maxPromptBytes) cap = Math.min(cap, lim.maxPromptBytes - 8000); } catch (e) {}
+  var fatal = function (e) { return e && (e.code === 'cancelled' || e.code === 'not_granted' || e.code === 'rate_limited'); };
+  try {
+    // Stage 1 (quick): scan a one-line summary of every mix. If it fails, fall back to the word ranking.
+    S.ask.status = 'scan'; drawAsk();
+    var ids = [];
+    try {
+      var cat = fitCat(S.mixes.map(catLine), Math.min(cap, 140000) - 3000);
+      var p1 = 'You help a listener choose from the Low Light Mixes archive (' + S.mixes.length + ' long ambient, electronic, folk, prog and modern-classical mixes from a blog).\n\nLISTENER ASKS: ' + JSON.stringify(text) + '\n\n' + ASK_RULES +
+        '\n\nARCHIVE (one object per mix; n = number, t = title, y = year, l = blog labels, mc = Mixcloud tags, d = a short summary of the blog description, h = marked heard):\n' + cat +
+        '\n\nFirst pass. Return the numbers (n) of the 20 mixes most worth reading in full for this request, best first, casting a slightly wide net. Reply only as JSON: {"n": [numbers]}';
+      var r1 = await askClaude(p1, { modelTier: 'quick' }, ctl);
+      ids = (r1 && Array.isArray(r1.n) ? r1.n : []).map(function (i) { var m = S.mixes[+i]; return m ? m.slug : null; }).filter(Boolean);
+    } catch (e) { if (fatal(e)) throw e; }
+    if (ctl.signal.aborted || S.ask.text !== text) return;
+    var pool = []; ids.concat(ranked.slice(0, 12).map(function (r) { return r.m.slug; })).forEach(function (id) { if (pool.indexOf(id) < 0) pool.push(id); });
+    if (pool.length < 8) S.mixes.forEach(function (m) { if (pool.length < 12 && pool.indexOf(m.slug) < 0 && (m.intro || '').length > 300) pool.push(m.slug); });
+    // Stage 2: read the full descriptions and choose, with reasons. One retry with a smaller set if it fails.
+    var tries = [{ n: 24, len: 3500, tier: 'default' }, { n: 12, len: 1500, tier: 'quick' }], r2 = null, used = [];
+    for (var k = 0; k < tries.length && !r2; k++) {
+      var tr = tries[k];
+      used = pool.slice(0, tr.n);
+      S.ask.status = 'read'; S.ask.reading_n = used.length; S.ask.retry = k > 0; drawAsk();
+      var cards = used.map(function (id) { var c = fullCard(S.bySlug[id]); c.description = c.description.slice(0, tr.len); return c; });
+      var body = JSON.stringify(cards);
+      while (body.length * 1.15 > cap - 4000 && cards.length > 6) { cards.pop(); used.pop(); body = JSON.stringify(cards); }
+      var p2 = 'You help a listener choose from the Low Light Mixes archive.\n\nLISTENER ASKS: ' + JSON.stringify(text) + '\n\n' + ASK_RULES +
+        '\n\nCANDIDATES (full blog descriptions):\n' + body +
+        '\n\nRead every description in full. Choose the 3 to 5 mixes that best fit the request, best first. For each, explain in 2-4 plain sentences why it fits, grounded in its description, and mention labels, Mixcloud tags or known artists only as support. If something in it might not fit, say so in "caveat". Reply only as JSON: {"reading": one sentence restating what the listener wants, "picks": [{"slug": exact slug, "why": "...", "quote": a short exact phrase copied from its description, "caveat": optional short text}]}';
+      try { r2 = await askClaude(p2, { modelTier: tr.tier }, ctl); }
+      catch (e) { if (fatal(e) || k === tries.length - 1) throw e; }
+      if (ctl.signal.aborted || S.ask.text !== text) return;
+    }
+    var picks = (r2 && Array.isArray(r2.picks) ? r2.picks : []).map(function (p) {
+      var m = p && S.bySlug[p.slug]; if (!m) return null;
+      var q = String(p.quote || '').trim().replace(/^["“]|["”]$/g, ''); if (q && (m.intro || '').toLowerCase().indexOf(q.toLowerCase()) < 0) q = '';
+      return { m: m, why: String(p.why || '').slice(0, 900), quote: q.slice(0, 300), caveat: String(p.caveat || '').slice(0, 300), ai: true };
+    }).filter(Boolean).slice(0, 5);
+    if (!picks.length) throw { code: 'empty' };
+    S.ask.picks = picks; S.ask.reading = String((r2 && r2.reading) || '').slice(0, 300); S.ask.status = ''; S.ask.read = used.length;
+    drawAsk();
+  } catch (e) {
+    if (e && e.code === 'cancelled') return;
+    if (S.ask.text !== text) return;
+    S.ask.status = 'failed'; S.ask.err = (e && e.code) || 'error'; S.ask.errMsg = e && e.message ? String(e.message).slice(0, 160) : '';
+    if (e && e.code === 'not_granted') S.sample = null;
+    drawAsk();
+  }
+}
+function whyLocal(m, text) {
+  var bits = [];
+  var d = m.intro || '', dl = d.toLowerCase(), at = -1;
+  (S.ask._words || []).some(function (w) { at = dl.indexOf(w); return at >= 0; });
+  if (d) {
+    var st = at < 0 ? 0 : Math.max(0, d.lastIndexOf('.', at) + 1, d.lastIndexOf('\n', at) + 1);
+    var snip = d.slice(st, st + 220).trim();
+    bits.push('“' + snip + (d.length > st + 220 ? '…' : '') + '”');
+  }
+  var tg = m.labels.concat(tagsOf(m)); if (tg.length) bits.push('Labels and tags: ' + tg.slice(0, 6).join(', ') + '.');
+  return bits.join(' ');
+}
+var ERRS = { not_granted: 'Claude isn’t allowed in this view. Open the page’s Permissions menu to allow it, then ask again.', rate_limited: 'Claude is busy or your usage limit is reached. Try again in a little while.', prompt_too_large: 'The request was too large for Claude here.', empty: 'Claude didn’t return a usable answer.', invalid_json: 'Claude’s answer came back garbled.' };
+function drawAsk() {
+  var out = $('askOut'); if (!out) return;
+  var a = S.ask;
+  if (!a.picks) { out.innerHTML = ''; return; }
+  var st = '';
+  if (a.status === 'wait') st = '<div class="status"><i></i>Connecting to Claude…</div>';
+  else if (a.status === 'standalone') st = '<p class="note">This copy can only match words. <a href="' + h(ROOM_URL + '#ask-' + askSlug(a.text)) + '" target="_blank" rel="noopener">Ask Claude in the room</a> to have it read the descriptions.</p>';
+  else if (a.status === 'nosample') st = '<p class="note warn">Claude isn’t available in this view, so these are the closest matches by words. On claude.ai, open the room’s Permissions menu and allow Claude, then reload.</p>';
+  else if (a.status === 'scan') st = '<div class="status"><i></i>Claude is scanning all ' + S.mixes.length + ' mixes by title, labels and tags… <button type="button" class="chip" data-stop="1">Stop</button></div>';
+  else if (a.status === 'read') st = '<div class="status"><i></i>Claude is reading the full descriptions of ' + a.reading_n + ' candidates' + (a.retry ? ' (second try, smaller set)' : '') + '… <button type="button" class="chip" data-stop="1">Stop</button></div>';
+  else if (a.status === 'failed') st = '<p class="note warn">' + h(ERRS[a.err] || 'Claude could not answer just now (' + a.err + (a.errMsg ? ': ' + a.errMsg : '') + ').') + ' Below are the closest matches by words.</p>';
+  else if (a.status === 'stopped') st = '<p class="note">Stopped. Below are the closest matches by words.</p>';
+  var busy = a.status === 'scan' || a.status === 'read';
+  out.innerHTML = (a.reading ? '<p class="note" style="font-size:1rem;margin-top:1.4rem">' + h(a.reading) + '</p>' : '') + st +
+    (busy ? '<p class="note" style="margin-top:1.4rem">Closest by words while you wait:</p>' : '') +
+    (a.picks.length ? '<div class="picks"' + (busy ? ' style="opacity:.6"' : '') + '>' + a.picks.map(function (p) {
+      var m = p.m;
+      return '<article class="pick"><a href="' + h(mixHash(m)) + '" tabindex="-1" aria-hidden="true">' + coverHtml(m) + '</a><div><h3><a href="' + h(mixHash(m)) + '">' + h(m.title) + '</a></h3><p class="note" style="margin-top:.2rem">' + h([String(m.published || '').slice(0, 4), dur(m._end), m.tracks.length ? m.tracks.length + ' tracks' : '', mark(m.slug).heard ? 'heard' : ''].filter(Boolean).join(' · ')) + '</p>' +
+        '<p class="why">' + h(p.why) + '</p>' + (p.quote ? '<blockquote class="q">“' + h(p.quote) + '”</blockquote>' : '') + (p.caveat ? '<p class="note">' + h(p.caveat) + '</p>' : '') +
+        (m.intro ? '<details class="desc"><summary>Read the full description</summary><p>' + h(m.intro) + '</p></details>' : '') + '</div></article>';
+    }).join('') + '</div>' + (!busy && a.picks[0] && a.picks[0].ai ? '<p class="note" style="margin-top:1.4rem">Chosen by Claude after reading ' + (a.read || '') + ' full descriptions.</p>' : '') : '<p class="lede" style="margin-top:1.5rem">No mix mentions those words. Try a label like ambient, berlin school, folk or autumn.</p>');
+}
+
+// ------------------------------------------------------------ YOURS
+function renderYours(main) {
+  var mk = S.memory.marks || {};
+  var fav = Object.keys(mk).filter(function (s) { return mk[s].fav && S.bySlug[s]; }).map(function (s) { return S.bySlug[s]; });
+  var heard = Object.keys(mk).filter(function (s) { return mk[s].heard && S.bySlug[s]; }).map(function (s) { return S.bySlug[s]; });
+  var recent = (S.memory.recent || []).map(function (r) { return S.bySlug[r.slug]; }).filter(Boolean).slice(0, 12);
+  function grid(list, none) { return list.length ? '<div class="grid">' + list.map(function (m) { return cardHtml(m); }).join('') + '</div>' : '<p class="lede">' + none + '</p>'; }
+  main.innerHTML = '<section class="view"><h1 class="v">Yours</h1><p class="lede">' + (STANDALONE ? 'Kept in this browser.' : (S.uid ? 'Private to you: nobody else who opens this room sees these.' : 'Kept in this browser for now.')) + '</p>' +
+    '<section class="sect" style="margin-top:1rem"><h2 class="spaced">F a v o u r i t e s</h2>' + grid(fav, 'Mark a mix as a favourite from its page.') + '</section>' +
+    '<section class="sect"><h2 class="spaced">R e c e n t l y &nbsp; o p e n e d</h2>' + grid(recent, 'Mixes you open appear here.') + '</section>' +
+    '<section class="sect"><h2 class="spaced">H e a r d</h2>' + grid(heard, 'Mixes you mark as heard. Ask only uses this when you ask for something new, or something you know.') + '</section></section>';
+}
+
+// ------------------------------------------------------------ ABOUT
+function renderAbout(main) {
+  var mon = S.monitor, repo = S.config.repo || '', pu = pagesUrl();
+  var html = '<section class="view"><h1 class="v">How this room works</h1><p class="lede">A free GitHub check reads the Low Light Mixes blog every day, including its comments and the Mixcloud listings. ' + (STANDALONE ? 'This copy reads the check’s files directly and can play the mixes.' : 'A daily Claude task copies new mixes in here. A second copy of this room, hosted by GitHub, holds the player, because claude.ai pages can’t embed Mixcloud or play outside audio.') + '</p>';
+  html += '<div class="panel"><h3>Daily check</h3>';
+  if (mon && mon.lastCheck) {
+    var stale = Date.now() - Date.parse(mon.lastCheck) > 2 * DAY;
+    html += '<p class="state ' + (stale ? 'warn' : 'ok') + '"><i></i>' + (stale ? 'The last check was ' + ago(mon.lastCheck) + '. It may have stopped; open the repository’s Actions tab to see why.' : 'Read the blog ' + ago(mon.lastCheck) + (mon.lastResult ? ': ' + h(mon.lastResult) + '.' : '.')) + '</p>';
+    if (mon.lastSync) html += '<p class="msg">Copied into this room ' + ago(mon.lastSync) + '.' + (mon.syncNotes ? ' ' + h(mon.syncNotes) : '') + '</p>';
+    if (mon.syncProblem) html += '<p class="msg err">' + h(mon.syncProblem) + '</p>';
+  } else if (mon && mon.syncProblem) {
+    html += '<p class="state warn"><i></i>The daily copy could not read the check: ' + h(mon.syncProblem) + '</p>';
+  } else {
+    html += '<p class="state"><i></i>Not running yet.</p>';
+  }
+  html += '</div>';
+  if (!STANDALONE) {
+    html += '<div class="panel"><h3>Repository</h3>' + (repo ? '<p>Reading <a href="https://github.com/' + h(repo) + '" target="_blank" rel="noopener"><code>' + h(repo) + '</code></a>' + (pu ? ' · player copy at <a href="' + h(pu) + '" target="_blank" rel="noopener">' + h(pu.replace(/^https:\/\//, '')) + '</a>' : '') + '</p>' : '<p>No repository set yet. The daily copy waits until it has one.</p>') +
+      (S.canEdit && S.db ? '<form class="inrow" id="repoF"><label class="sr" for="repoIn">GitHub repository (owner/name)</label><input id="repoIn" placeholder="your-name/lowlight-room" value="' + h(repo) + '" autocomplete="off" spellcheck="false"><button class="btn primary" type="submit">Save</button></form><p class="msg" id="repoMsg" aria-live="polite"></p>' : '<p class="note">Only editors of this room can change it.</p>') + '</div>';
+  }
+  html += '<div class="panel"><h3>Setting it up (once, about ten minutes)</h3><ol class="steps">' +
+    '<li>On GitHub, create a new <b>public</b> repository, for example <code>lowlight-room</code>.</li>' +
+    '<li>Choose <b>Add file → Upload files</b> and drop in everything from the <code>lowlight-room</code> folder you were given (<code>index.html</code>, <code>README.md</code>, the <code>scripts</code> folder). Commit.</li>' +
+    '<li>Choose <b>Add file → Create new file</b>, name it <code>.github/workflows/check.yml</code>, paste the contents of <code>check.yml</code> and commit. (This step is separate because folders starting with a dot are hidden on a Mac.)</li>' +
+    '<li>In <b>Settings → Pages</b>, set Source to “Deploy from a branch”, branch <code>main</code>, folder <code>/ (root)</code>, and save. That is the player copy.</li>' +
+    '<li>In the <b>Actions</b> tab, open “Check Low Light Mixes” and press <b>Run workflow</b>. The first run reads all ~620 posts and saves the covers; it takes a few minutes.</li>' +
+    '<li>' + (STANDALONE ? 'Put <code>owner/name</code> into the claude.ai room’s About page so the daily copy can start.' : 'Type <code>owner/name</code> into the box above and save. The next daily copy fills this room; covers and mood readings arrive over the following days.') + '</li></ol></div>';
+  html += '<div class="panel"><h3>Where things live</h3><p>The check stores everything in the repository’s <code>data/mixes.json</code> and <code>art/</code> folder. Tracklists come from the post, or from a comment when the post has none. ' + (STANDALONE ? 'Heard and favourite marks in this copy stay in this browser.' : 'Your heard and favourite marks are stored privately per person; the mixes are shared and only the daily task writes them.') + '</p><p>Mood readings are written by Claude from each post’s words, labels and tracklist, and say so. Claude never hears the audio.</p></div></section>';
+  main.innerHTML = html;
+  var f = $('repoF');
+  if (f) f.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var v = $('repoIn').value.trim().replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/, '').replace(/\/+$/, '');
+    var msg = $('repoMsg');
+    if (!/^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/.test(v)) { msg.className = 'msg err'; msg.textContent = 'Write it as owner/name, for example alex/lowlight-room.'; return; }
+    var body = Object.assign({}, S.config, { repo: v, setAt: new Date().toISOString() });
+    S.db.doc('meta/config').set(body).then(function () { S.config = body; msg.className = 'msg good'; msg.textContent = 'Saved. The next daily copy will read ' + v + '.'; })
+      .catch(function () { msg.className = 'msg err'; msg.textContent = 'Could not save. Only editors of this room can change it.'; });
+  });
+}
+
+// ------------------------------------------------------------ boot
+route();
+if (STANDALONE) {
+  fetch('data/mixes.json', { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw 0; return r.json(); })
+    .then(function (d) { var ms = d && d.mixes ? Object.keys(d.mixes).map(function (k) { return d.mixes[k]; }) : []; setMixes(ms); })
+    .catch(function () { setMixes([]); });
+  fetch('data/status.json', { cache: 'no-cache' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (s) { if (s) { S.monitor = s; if (S.tab === 'about') route(); } }).catch(function () {});
+} else {
+  S.sampleP = Promise.resolve(window.claude.use('sample')).catch(function () { return null; });
+  (async function () {
+    var db = await window.claude.use('db');
+    var user = await window.claude.use('user');
+    if (!db) { setMixes([]); return; }
+    S.db = db;
+    try { S.canEdit = user ? await user.canEdit() : false; } catch (e) {}
+    try { S.uid = user ? await user.id() : null; } catch (e) {}
+    db.doc('meta/config').onSnapshot(function (s) { S.config = s.exists ? Object.assign({}, s.data()) : {}; if (S.tab === 'about' || S.tab === 'mix') route(); }, function () {});
+    db.doc('meta/monitor').onSnapshot(function (s) { S.monitor = s.exists ? s.data() : null; if (S.tab === 'about') route(); }, function () {});
+    var first = true;
+    db.collection('mixes').onSnapshot(function (snap) {
+      var keep = S.tab === 'mix' || S.tab === 'artists';
+      var y = window.scrollY;
+      setMixes(snap.docs.map(function (d) { return Object.assign({ slug: d.id }, d.data()); }));
+      if (!first && keep) window.scrollTo(0, y);
+      first = false;
+    }, function () { setMixes([]); });
+    if (S.uid) db.doc('data/users/' + S.uid + '/memory').get().then(function (s) {
+      if (s.exists) { var d = s.data() || {}; S.memory = { marks: Object.assign({}, S.memory.marks, d.marks || {}), recent: d.recent || S.memory.recent || [] }; lsSet('lowlight-memory', S.memory); if (S.tab === 'yours') route(); }
+    }).catch(function () {});
+    S.sample = await S.sampleP;
+  })();
+}
+})();
+</script>
+
+</body></html>
