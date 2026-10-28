@@ -869,7 +869,7 @@ window.addEventListener('pagehide', function () { if (STANDALONE) { Log.flush();
 
 function listenStats() {
   if (S._listen) return S._listen;
-  var by = {}, ss = Object.keys(Log.data.sessions).map(function (id) { var s = Log.data.sessions[id]; s.id = id; return s; });
+  var by = {}, ss = Object.keys(Log.data.sessions).map(function (id) { return Object.assign({}, Log.data.sessions[id], { id: id }); });
   ss.forEach(function (s) { var b = by[s.slug] = by[s.slug] || { sec: 0, n: 0, maxPos: 0, last: '' }; b.sec += s.sec; b.n++; if (s.maxPos > b.maxPos) b.maxPos = s.maxPos; if (s.start > b.last) b.last = s.start; });
   ss.sort(function (a, b) { return b.start.localeCompare(a.start); });
   return (S._listen = { sessions: ss, by: by });
