@@ -1,14 +1,17 @@
 {
- "lastCheck": "2026-10-28T23:15:47Z",
- "lastOk": "2026-10-28T23:15:47Z",
+ "lastCheck": "2026-10-28T23:19:19Z",
+ "lastOk": "2026-10-28T23:19:19Z",
  "ok": true,
  "lastResult": "619 mixes on the blog, 0 new",
  "postsTotal": 619,
  "mixes": 619,
- "withTracklist": 560,
+ "withTracklist": 561,
  "tracklistsFromComments": 1,
  "newThisRun": [],
  "mixcloudMatched": 512,
  "coversSaved": 0,
- "notes": []
+ "notes": [],
+ "mixcloudCommentsRead": 25,
+ "tracklistsFromMixcloudComments": 3,
+ "mixcloudCommentErrors": []
 }
