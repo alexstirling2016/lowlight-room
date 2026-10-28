@@ -419,7 +419,8 @@ function ghLinksHtml() {
 }
 function paintGh() { var el = $('ghLinks'); if (el) el.innerHTML = ghLinksHtml(); }
 function mixHash(m, sec) { return '#m-' + m.slug + (sec != null ? '--at-' + Math.round(sec) : ''); }
-function playerLink(m, sec) { var p = pagesUrl(); return p ? p + mixHash(m, sec) : null; }
+// The minute stamp makes each link fetch the newest player page rather than a copy the browser kept (GitHub Pages lets browsers keep it for 10 minutes).
+function playerLink(m, sec) { var p = pagesUrl(); return p ? p + '?v=' + Math.floor(Date.now() / 60000).toString(36) + mixHash(m, sec) : null; }
 
 // ------------------------------------------------------------ routing
 function route() {
