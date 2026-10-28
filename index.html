@@ -151,6 +151,11 @@ ol.tl.liked .ts{font-size:.85rem}
 .arow ul{list-style:none;margin:0 0 .9rem;padding:0;font-size:.9rem;display:flex;flex-direction:column;gap:.3rem}
 .arow li{display:grid;grid-template-columns:4.2rem minmax(0,1fr);gap:.8rem}
 .arow li small{color:var(--muted)}
+.arow li .like{margin:0 0 0 .2rem;vertical-align:-.15em;line-height:0}
+.arow li .like svg{width:.9rem;height:.9rem}
+.lh{color:var(--glow);margin-left:.45rem;line-height:0}
+.lh svg{width:.8rem;height:.8rem;fill:currentColor;vertical-align:-.05em}
+.arow>button span.sub{display:block;font-size:.8rem;color:var(--muted);white-space:normal;margin-top:.1rem}
 
 /* ask */
 .askbox{border:1px solid var(--line);border-radius:.6rem;background:var(--surface);padding:1rem 1.1rem}
@@ -1250,23 +1255,47 @@ function artistIndex() {
     .sort(function (a, b) { return b.n - a.n || a.name.localeCompare(b.name); });
   return S._artists;
 }
+// Artists named in liked tracks, most-liked first: {key, name, liked: [liked entries], a: artistIndex entry or null}.
+function likedArtists() {
+  var idx = {}; artistIndex().forEach(function (a) { idx[a.key] = a; });
+  var out = {};
+  likedList().forEach(function (x) {
+    splitArtists(x.artist).forEach(function (n) {
+      var k = squash(n); if (!k) return;
+      var o = out[k] = out[k] || { key: k, name: (idx[k] && idx[k].name) || n, liked: [], a: idx[k] || null, last: '' };
+      o.liked.push(x); if (String(x.ts) > o.last) o.last = String(x.ts);
+    });
+  });
+  return Object.keys(out).map(function (k) { return out[k]; })
+    .sort(function (a, b) { return b.liked.length - a.liked.length || b.last.localeCompare(a.last) || a.name.localeCompare(b.name); });
+}
+function likedArtistKeys() { var s = {}; likedArtists().forEach(function (a) { s[a.key] = 1; }); return s; }
+var SMALL_HEART = '<span class="lh" title="You liked a track by this artist">' + HEART + '</span>';
+function appRow(x) {
+  var i = idxOf(x.m, x.t), lb = i >= 0 ? likeBtn(x.t, i).replace('<button type="button" class="like"', '<button type="button" class="like" data-s="' + h(x.m.slug) + '"') : '';
+  return '<li>' + tsLink(x.m, x.t) + '<span>' + h(x.t.title || '') + (x.t.artist && splitArtists(x.t.artist).length > 1 ?' <small>(' + h(x.t.artist) + ')</small>' : '') + ' <small>in</small> <a href="' + h(mixHash(x.m)) + '">' + h(x.m.title) + '</a> <small>' + h(String(x.m.published || '').slice(0, 4)) + '</small>' + lb + '</span></li>';
+}
+function appsNewest(a) { return a.apps.slice().sort(function (p, q) { return (liked(q.t) - liked(p.t)) || String(q.m.published || '').localeCompare(String(p.m.published || '')); }); }
 function renderArtists(main) {
   if (!S.mixes.length) { main.innerHTML = '<section class="view">' + emptyState() + '</section>'; return; }
   var all = artistIndex();
   main.innerHTML = '<section class="view"><h1 class="v">Artists</h1><p class="lede">Every artist named in a tracklist, by how many mixes they appear in. Open one to see each appearance; the times jump straight to that spot.</p>' +
-    '<div class="filters"><label class="sr" for="aq">Find an artist</label><input type="search" id="aq" placeholder="Find among ' + all.length.toLocaleString() + ' artists…" value="' + h(S.artistQ) + '"></div><div class="alist" id="alist"></div></section>';
+    '<div class="filters"><label class="sr" for="aq">Find an artist</label><input type="search" id="aq" placeholder="Find among ' + all.length.toLocaleString() + ' artists…" value="' + h(S.artistQ) + '"></div><div class="chips" id="achips"></div><div class="alist" id="alist"></div></section>';
   function draw() {
-    var q = squash(S.artistQ);
+    var q = squash(S.artistQ), lk = likedArtistKeys(), nLk = all.filter(function (a) { return lk[a.key]; }).length;
+    $('achips').innerHTML = nLk ? '<button type="button" class="chip" id="aLiked" aria-pressed="' + !!S.artistLiked + '">♥ Artists I’ve liked<em>' + nLk + '</em></button>' : '';
     var list = q ? all.filter(function (a) { return a.key.indexOf(q) >= 0; }) : all;
+    if (S.artistLiked && nLk) list = list.filter(function (a) { return lk[a.key]; });
     $('alist').innerHTML = list.slice(0, 150).map(function (a) {
       var open = S.openArtist === a.key;
-      return '<div class="arow"><button type="button" data-a="' + h(a.key) + '" aria-expanded="' + open + '"><b>' + h(a.name) + '</b><span>' + a.n + (a.n === 1 ? ' mix' : ' mixes') + '</span></button>' +
-        (open ? '<ul>' + a.apps.map(function (x) { return '<li>' + tsLink(x.m, x.t) + '<span>' + h(x.t.title || '') + ' <small>in</small> <a href="' + h(mixHash(x.m)) + '">' + h(x.m.title) + '</a> <small>' + h(String(x.m.published || '').slice(0, 4)) + '</small></span></li>'; }).join('') + '</ul>' : '') + '</div>';
+      return '<div class="arow"><button type="button" data-a="' + h(a.key) + '" aria-expanded="' + open + '"><b>' + h(a.name) + (lk[a.key] ? SMALL_HEART : '') + '</b><span>' + a.n + (a.n === 1 ? ' mix' : ' mixes') + '</span></button>' +
+        (open ? '<ul>' + (lk[a.key] ? appsNewest(a) : a.apps).map(appRow).join('') + '</ul>' : '') + '</div>';
     }).join('') + (list.length > 150 ? '<p class="note">Showing 150 of ' + list.length + '. Type a name to narrow it.</p>' : '') + (!list.length ? '<p class="lede">No artist by that name in the tracklists.</p>' : '');
   }
   draw();
   $('aq').addEventListener('input', function () { S.artistQ = this.value; draw(); });
   $('alist').addEventListener('click', function (e) { var b = e.target.closest('[data-a]'); if (!b) return; S.openArtist = S.openArtist === b.dataset.a ? null : b.dataset.a; draw(); });
+  $('achips').addEventListener('click', function (e) { if (!e.target.closest('#aLiked')) return; S.artistLiked = !S.artistLiked; draw(); });
 }
 
 // ------------------------------------------------------------ ASK
@@ -1432,9 +1461,22 @@ function renderYours(main) {
   function grid(list, none) { return list.length ? '<div class="grid">' + list.map(function (m) { return cardHtml(m); }).join('') + '</div>' : '<p class="lede">' + none + '</p>'; }
   main.innerHTML = '<section class="view"><h1 class="v">Yours</h1><p class="lede">' + (STANDALONE ? 'Kept in this browser.' : (S.uid ? 'Private to you: nobody else who opens this room sees these.' : 'Kept in this browser for now.')) + '</p>' +
     '<section class="sect" style="margin-top:1rem"><h2 class="spaced">L i k e d &nbsp; t r a c k s</h2>' + likedHtml + (STANDALONE && lk.length ? '<p class="note">' + (Log.cfg ? 'Also saved to your private repository, so they follow you to other devices.' : 'Connect a private repository on the Listening page to keep these on every device.') + '</p>' : '') + '</section>' +
+    '<section class="sect"><h2 class="spaced">A r t i s t s &nbsp; y o u ’ v e &nbsp; l i k e d</h2><p class="note">Everyone behind a track you liked. Open one to see everything of theirs in the archive; the times play from that spot.</p><div class="alist" id="likedArts"></div></section>' +
     '<section class="sect"><h2 class="spaced">F a v o u r i t e &nbsp; m i x e s</h2>' + grid(fav, 'Mark a mix as a favourite from its page.') + '</section>' +
     '<section class="sect"><h2 class="spaced">R e c e n t l y &nbsp; o p e n e d</h2>' + grid(recent, 'Mixes you open appear here.') + '</section>' +
     '<section class="sect"><h2 class="spaced">H e a r d</h2>' + grid(heard, 'Mixes you mark as heard. Ask only uses this when you ask for something new, or something you know.') + '</section></section>';
+  function drawLA() {
+    var box = $('likedArts'); if (!box) return;
+    var la = likedArtists();
+    box.innerHTML = la.length ? la.map(function (x) {
+      var open = S.openLiked === x.key, a = x.a, n = a ? a.n : 0, nt = a ? a.apps.length : 0;
+      return '<div class="arow"><button type="button" data-la="' + h(x.key) + '" aria-expanded="' + open + '"><span style="white-space:normal;color:inherit;font-size:inherit"><b>' + h(x.name) + '</b><span class="sub">liked: ' + h(x.liked.map(function (y) { return y.title; }).filter(Boolean).slice(0, 3).join(', ') + (x.liked.length > 3 ? '…' : '')) + '</span></span><span>' + (n ? nt + (nt === 1 ? ' track' : ' tracks') + ' in ' + n + (n === 1 ? ' mix' : ' mixes') : 'not in the tracklists') + '</span></button>' +
+        (open && a ? '<ul>' + appsNewest(a).map(appRow).join('') + '</ul>' : '') + '</div>';
+    }).join('') : '<p class="lede">Like a track and its artist appears here.</p>';
+  }
+  drawLA();
+  var lab = $('likedArts');
+  if (lab) lab.addEventListener('click', function (e) { var b = e.target.closest('[data-la]'); if (!b) return; S.openLiked = S.openLiked === b.dataset.la ? null : b.dataset.la; drawLA(); });
   var ll = $('likedList');
   if (ll) ll.addEventListener('click', function (e) {
     var b = e.target.closest('button.like'); if (!b) return;
