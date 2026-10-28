@@ -116,6 +116,12 @@ ol.tl li.now .who::before{content:"";display:inline-block;width:.45rem;height:.4
 .ts:hover{color:var(--ink);text-decoration:underline}
 span.ts{cursor:default;color:var(--muted)}
 .who{font-weight:700}
+.rowacts{display:flex;gap:.1rem;align-self:center}
+.morebtn{background:none;border:0;padding:.2rem .35rem;margin:-.2rem 0;cursor:pointer;color:var(--muted);border-radius:.3rem;font:700 1.05rem/1 var(--body)}
+.morebtn:hover{color:var(--tape)}
+.why2{display:block;font-size:.82rem;color:var(--tape)}
+.more-head{margin-top:1.2rem}
+.more-head h1{font:400 clamp(1.7rem,4.5vw,2.6rem)/1.1 var(--display);margin:.3rem 0 .4rem;text-wrap:balance}
 .like{background:none;border:0;padding:.2rem .35rem;margin:-.2rem 0;cursor:pointer;color:var(--muted);line-height:0;border-radius:.3rem;align-self:center}
 .like svg{width:1.05rem;height:1.05rem;fill:none;stroke:currentColor;stroke-width:1.7}
 .like:hover{color:var(--ink)}
@@ -256,7 +262,7 @@ footer{margin-top:4rem;padding-top:1rem;border-top:1px solid var(--line);font-si
 <div class="player" id="player" hidden>
   <div class="in">
     <div class="now" id="pNow"></div>
-    <div class="ctl"><button type="button" id="pLike" class="plike" aria-pressed="false" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 8 3.3 4.5 6.9 4.5c2.1 0 3.6 1.2 5.1 3 1.5-1.8 3-3 5.1-3 3.6 0 5.5 3.5 4.2 6.8-1.8 4.6-9.3 9.2-9.3 9.2z"/></svg><span>Like</span></button><button type="button" id="pMc" aria-pressed="true">Mixcloud</button><button type="button" id="pMp3" aria-pressed="false">MP3</button><button type="button" id="pClose" aria-label="Close the player">✕</button></div>
+    <div class="ctl"><button type="button" id="pLike" class="plike" aria-pressed="false" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 8 3.3 4.5 6.9 4.5c2.1 0 3.6 1.2 5.1 3 1.5-1.8 3-3 5.1-3 3.6 0 5.5 3.5 4.2 6.8-1.8 4.6-9.3 9.2-9.3 9.2z"/></svg><span>Like</span></button><button type="button" id="pMore" class="plike" disabled title="More like the track playing now"><b style="font-size:1rem;line-height:.8">≈</b><span>More like this</span></button><button type="button" id="pMc" aria-pressed="true">Mixcloud</button><button type="button" id="pMp3" aria-pressed="false">MP3</button><button type="button" id="pClose" aria-label="Close the player">✕</button></div>
     <div class="slot" id="pSlot"></div>
   </div>
 </div>
@@ -294,7 +300,7 @@ function setMixes(list) {
   list.sort(function (a, b) { return String(b.published || '').localeCompare(String(a.published || '')); });
   S.mixes = list; S.bySlug = {};
   list.forEach(function (m, i) { m._i = i; S.bySlug[m.slug] = m; m._end = mixEnd(m); m._hay = squashHay(m); });
-  S._artists = null; S._listen = null; S._tracks = null; S.loaded = true;
+  S._artists = null; S._listen = null; S._tracks = null; S._apps = null; S.loaded = true;
   route();
 }
 function squashHay(m) {
@@ -421,19 +427,30 @@ function route() {
   } else if (/^(mixes|artists|ask|yours|listening|about)$/.test(hs)) tab = hs;
   else if (hs.indexOf('ask-') === 0) { tab = 'ask'; var qq = hs.slice(4).replace(/-/g, ' ').trim(); if (qq && qq !== S.ask.text) { S.ask.text = qq; S._autoAsk = qq; } }
   else if (hs.indexOf('label-') === 0) { S.label = hs.slice(6).replace(/-/g, ' '); S.q = ''; S.shown = 48; tab = 'mixes'; }
+  else if (hs.indexOf('more-') === 0) { var mm = hs.slice(5).match(/^(.*)--(\d+)$/); if (mm) { slug = mm[1]; at = +mm[2]; tab = 'more'; } }
   document.querySelectorAll('nav.tabs a').forEach(function (a) { a.setAttribute('aria-current', a.dataset.tab === tab ? 'page' : 'false'); });
   var main = $('main');
+  try {
   if (tab === 'mix') renderMix(main, slug, at);
+  else if (tab === 'more') renderMore(main, slug, at);
   else if (tab === 'artists') renderArtists(main);
   else if (tab === 'ask') renderAsk(main);
   else if (tab === 'yours') renderYours(main);
   else if (tab === 'about') renderAbout(main);
   else if (tab === 'listening') renderListening(main);
   else renderMixes(main);
+  } catch (err) {
+    main.innerHTML = '<section class="view"><div class="empty"><h2>This page hit a snag</h2><p>' + h((err && err.message) || String(err)) + '</p><p class="note">Tell Claude this message. Other tabs still work.</p></div></section>';
+  }
   S.tab = tab;
   paintGh();
 }
 window.addEventListener('hashchange', function () { route(); window.scrollTo(0, 0); });
+// A tab clicked while its address is already showing doesn't fire hashchange, so render it anyway.
+document.addEventListener('click', function (e) {
+  var a = e.target.closest('nav.tabs a[href^="#"]');
+  if (a && a.getAttribute('href') === location.hash) { e.preventDefault(); route(); window.scrollTo(0, 0); }
+});
 
 function emptyState() {
   if (!S.loaded) return '<div class="status"><i></i>Loading the mixes…</div>';
@@ -551,7 +568,7 @@ function renderMix(main, slug, at) {
   var tl = m.tracks.length ? '<ol class="tl" id="tl">' + m.tracks.map(function (t, i) {
     var lk = linkFor(t, m.links);
     return '<li data-i="' + i + '"' + (t.sec != null ? ' data-at="' + t.sec + '"' : '') + '>' + tsLink(m, t) + '<div><span class="who">' + h(t.artist || '') + '</span>' + (t.artist ? ' – ' : '') + '<span class="what">' + h(t.title || '') + '</span>' +
-      ((t.album || t.year || lk) ? '<span class="alb">' + h([t.album, t.year].filter(Boolean).join(', ')) + (lk ? ' <a href="' + h(lk) + '" target="_blank" rel="noopener">' + h(siteName(lk)) + '</a>' : '') + '</span>' : '') + '</div>' + likeBtn(t, i) + '</li>';
+      ((t.album || t.year || lk) ? '<span class="alb">' + h([t.album, t.year].filter(Boolean).join(', ')) + (lk ? ' <a href="' + h(lk) + '" target="_blank" rel="noopener">' + h(siteName(lk)) + '</a>' : '') + '</span>' : '') + '</div><span class="rowacts">' + moreBtn(m, i) + likeBtn(t, i) + '</span></li>';
   }).join('') + '</ol>' : '<p class="note">No tracklist yet. The blog sometimes adds one later in the comments; the daily check looks there too.</p>';
   var src = m.tracklistSource === 'comment' ? '<p class="note">Tracklist taken from a comment' + (m.tracklistComment && m.tracklistComment.author ? ' by ' + h(m.tracklistComment.author) : '') + (m.tracklistComment && m.tracklistComment.published ? ', ' + h(dateStr(m.tracklistComment.published)) : '') + '.</p>' : '';
   var hint = timed.length ? (STANDALONE ? '<p class="note">Tap a time to jump there. Mixcloud sometimes refuses to skip ahead; then the MP3 takes over.</p>' : (pl ? '<p class="note">The times open the player copy of this room at that spot (this page can’t hold a player itself).</p>' : '<p class="note">The times can jump straight into the mix once the player copy is set up (see About).</p>')) : '';
@@ -570,7 +587,9 @@ function renderMix(main, slug, at) {
   noteOpened(m.slug);
   var ix = main.querySelector('.view');
   ix.addEventListener('click', function (e) {
-    var lb = e.target.closest('button.like[data-i]');
+    var mbt = e.target.closest('button.morebtn[data-mi]');
+    if (mbt) { location.hash = moreHash(m, +mbt.dataset.mi); return; }
+    var lb = e.target.closest('button.like[data-i]:not([data-s])');
     if (lb) { var lt = m.tracks[+lb.dataset.i]; setLike(m.slug, lt, !liked(lt)); return; }
     var mb = e.target.closest('[data-mark]');
     if (mb) { var on = mb.getAttribute('aria-pressed') !== 'true'; mb.setAttribute('aria-pressed', on); setMark(m.slug, mb.dataset.mark, on); return; }
@@ -694,7 +713,8 @@ var Player = {
     var m = this.mix; if (!m) return;
     var cur = null; m.tracks.forEach(function (t, i) { if (t.sec != null && t.sec <= Player.pos + 0.5) cur = i; });
     var t = cur != null ? m.tracks[cur] : null;
-    this.curTrack = t;
+    this.curTrack = t; this.curIdx = cur;
+    var pmb = $('pMore'); if (pmb) pmb.disabled = !likeable(t);
     var lkb = $('pLike');
     if (lkb) { var can = likeable(t), on = can && liked(t); lkb.disabled = !can; lkb.setAttribute('aria-pressed', on); lkb.title = can ? (on ? 'Liked: ' : 'Like the track playing now: ') + [t.artist, t.title].filter(Boolean).join(' – ') : 'No track is playing yet'; lkb.setAttribute('aria-label', lkb.title); lkb.querySelector('span').textContent = on ? 'Liked' : 'Like'; }
     $('pNow').innerHTML = '<b>' + h(m.title) + '</b>' + (t ? ' · ' + h([t.artist, t.title].filter(Boolean).join(' – ')) : '') + ' · ' + fmt(this.pos);
@@ -728,6 +748,7 @@ function loadMcApi() {
 $('pMc').addEventListener('click', function () { if (Player.mix) Player.open(Player.mix, 'mc', Player.pos || null); });
 $('pMp3').addEventListener('click', function () { if (Player.mix) Player.open(Player.mix, 'mp3', Player.pos || null); });
 $('pClose').addEventListener('click', function () { Player.close(); });
+$('pMore').addEventListener('click', function () { if (Player.mix && Player.curIdx != null) location.hash = moreHash(Player.mix, Player.curIdx); });
 $('pLike').addEventListener('click', function () { var t = Player.curTrack; if (Player.mix && likeable(t)) setLike(Player.mix.slug, t, !liked(t)); });
 
 // ------------------------------------------------------------ LISTENING LOG (player copy only)
@@ -915,7 +936,7 @@ function renderListening(main) {
 function drawListening() {
   var box = $('lsBody'); if (!box) return;
   var st = listenStats(), ss = st.sessions, cfg = Log.cfg;
-  var conn = !STANDALONE ? roomSyncPanel() : '<div class="panel"><h3>Where it’s saved</h3>' + (cfg ? '<p class="state ' + (Log.err ? 'warn' : 'ok') + '"><i></i>' + (Log.err ? h(Log.err) : 'Saving to your private repository <code>' + h(cfg.repo) + '</code>' + (Log.lastSync ? ', last synced ' + ago(Log.lastSync) : '') + (Log.data.pending.length ? ' · ' + Log.data.pending.length + ' waiting to upload' : '') + '.') + '</p><div class="inrow"><button type="button" class="btn" id="lsSync">Sync now</button><button type="button" class="btn" id="lsOff">Disconnect this browser</button></div>'
+  var conn = !STANDALONE ? roomSyncPanel() : '<div class="panel"><h3>Where it’s saved</h3>' + (cfg ? '<p class="state ' + (Log.err ? 'warn' : 'ok') + '"><i></i><span>' + (Log.err ? h(Log.err) : 'Saving to your private repository <code>' + h(cfg.repo) + '</code>' + (Log.lastSync ? ', last synced ' + ago(Log.lastSync) : '') + (Log.data.pending.length ? ' · ' + Log.data.pending.length + ' waiting to upload' : '') + '.') + '</span></p><div class="inrow"><button type="button" class="btn" id="lsSync">Sync now</button><button type="button" class="btn" id="lsOff">Disconnect this browser</button></div>'
     : '<p class="state"><i></i>Saved in this browser only. Connect a private GitHub repository to keep it safe and see it on every device.</p>' +
       '<details class="desc"><summary>How to connect (5 minutes, once per device)</summary><ol class="steps"><li>On GitHub, create a new <b>private</b> repository, e.g. <code>lowlight-listening</code>, and tick “Add a README file”.</li><li>Go to <b>Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token</b>. Repository access: <b>Only select repositories</b> → <code>lowlight-listening</code>. Permissions → Repository → <b>Contents: Read and write</b>. Generate and copy it.</li><li>Paste both below and press Connect. The key stays in this browser only; it can open nothing but that one repository.</li></ol></details>' +
       '<form class="inrow" id="lsF"><label class="sr" for="lsRepo">Private repository (owner/name)</label><input id="lsRepo" placeholder="alexstirling2016/lowlight-listening" autocomplete="off" spellcheck="false"><label class="sr" for="lsTok">GitHub key</label><input id="lsTok" type="password" placeholder="github_pat_…" autocomplete="off"><button class="btn primary" type="submit">Connect</button></form><p class="msg" id="lsMsg" aria-live="polite"></p>') + '</div>';
@@ -1032,6 +1053,133 @@ function showTip(t, e) { var el = $('tip'); el.textContent = t; el.hidden = fals
 function hideTip() { $('tip').hidden = true; }
 window.addEventListener('scroll', function () { var t = $('tip'); if (t && !t.hidden) t.hidden = true; }, { passive: true });
 window.addEventListener('hashchange', function () { var t = $('tip'); if (t) t.hidden = true; });
+
+// ------------------------------------------------------------ MORE LIKE THIS
+// From one track: the same artist elsewhere, tracks by artists that keep turning up in the same mixes,
+// and mixes that share those artists, labels and mood. In the claude.ai room Claude then picks and explains.
+function moreHash(m, i) { return '#more-' + m.slug + '--' + i; }
+function moreBtn(m, i, wide) { var t = m.tracks[i]; if (!likeable(t)) return ''; var nm = [t.artist, t.title].filter(Boolean).join(' – '); return '<button type="button" class="morebtn" data-mi="' + i + '"' + (wide ? ' data-ms="' + h(m.slug) + '"' : '') + ' title="More like this" aria-label="More like ' + h(nm) + '">≈</button>'; }
+function idxOf(m, t) { var k = trackKey(t); for (var i = 0; i < m.tracks.length; i++) if (trackKey(m.tracks[i]) === k) return i; return -1; }
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('button.morebtn[data-ms]'); if (b) { var mm = S.bySlug[b.dataset.ms]; if (mm) location.hash = moreHash(mm, +b.dataset.mi); return; }
+  var l = e.target.closest('button.like[data-s]'); if (l) { var m2 = S.bySlug[l.dataset.s], t2 = m2 && m2.tracks[+l.dataset.i]; if (t2) setLike(m2.slug, t2, !liked(t2)); }
+});
+function trackApps() {
+  if (S._apps) return S._apps;
+  var by = {}, mixArts = {}, names = {};
+  S.mixes.forEach(function (m) {
+    var set = {};
+    m.tracks.forEach(function (t, i) { splitArtists(t.artist).forEach(function (n) { var k = squash(n); if (!k) return; (by[k] = by[k] || []).push({ m: m, t: t, i: i }); set[k] = 1; names[k] = names[k] || n; }); });
+    mixArts[m.slug] = set;
+  });
+  Object.keys(by).forEach(function (k) { var s = {}; by[k].forEach(function (x) { s[x.m.slug] = 1; }); by[k].nMix = Object.keys(s).length; });
+  return (S._apps = { by: by, mixArts: mixArts, names: names });
+}
+function moreLike(m, i) {
+  var t = m.tracks[i], ix = trackApps(), A = splitArtists(t.artist).map(squash).filter(Boolean);
+  var newest = function (a, b) { return String(b.m.published || '').localeCompare(String(a.m.published || '')); };
+  var same = [], seen = {}; seen[trackKey(t)] = 1;
+  A.forEach(function (k) { (ix.by[k] || []).forEach(function (x) { var id = x.m.slug + '|' + x.i; if ((x.m === m && x.i === i) || seen[id]) return; seen[id] = 1; same.push(x); }); });
+  same.sort(newest);
+  // artists that share mixes with this one (or with this mix, if the artist appears nowhere else)
+  var src = {}; src[m.slug] = 1; A.forEach(function (k) { (ix.by[k] || []).forEach(function (x) { src[x.m.slug] = 1; }); });
+  var co = {};
+  Object.keys(src).forEach(function (s) { Object.keys(ix.mixArts[s] || {}).forEach(function (b) { if (A.indexOf(b) < 0) co[b] = (co[b] || 0) + 1; }); });
+  var coArr = Object.keys(co).map(function (b) { return { k: b, n: co[b], sc: co[b] / Math.sqrt((ix.by[b] && ix.by[b].nMix) || 1) }; })
+    .sort(function (a, b) { return b.sc - a.sc || b.n - a.n; });
+  var coScore = {}; coArr.slice(0, 60).forEach(function (c) { coScore[c.k] = c.sc; });
+  var tracks = [];
+  coArr.forEach(function (c) {
+    if (tracks.length >= 40) return;
+    var xs = (ix.by[c.k] || []).filter(function (x) { return x.m !== m; }).sort(newest);
+    if (!xs.length) return;
+    var x = null; for (var q = 0; q < xs.length; q++) { var id2 = xs[q].m.slug + '|' + xs[q].i, tk = trackKey(xs[q].t); if (!seen[id2] && !seen[tk]) { x = xs[q]; seen[id2] = 1; seen[tk] = 1; break; } }
+    if (!x) return;
+    tracks.push({ m: x.m, t: x.t, i: x.i, why: c.n > 1 ? 'shares ' + c.n + ' mixes with ' + (ix.names[A[0]] || t.artist) : 'sits in the same mix' + (src[m.slug] && Object.keys(src).length === 1 ? ' as this track' : ''), n: c.n });
+  });
+  var labs = {}; m.labels.forEach(function (l) { labs[l] = 1; });
+  var moods = {}; if (m.ai) [m.ai.primaryMood].concat(m.ai.moodTags || []).forEach(function (x) { if (x) moods[x] = 1; });
+  var mixes = S.mixes.filter(function (x) { return x !== m && x.tracks.length; }).map(function (x) {
+    var arts = ix.mixArts[x.slug] || {}, sc = 0, hits = [], hasA = A.some(function (k) { return arts[k]; });
+    Object.keys(arts).forEach(function (b) { if (coScore[b]) { sc += coScore[b]; hits.push(ix.names[b]); } });
+    if (hasA) sc += 3;
+    var lab = x.labels.filter(function (l) { return labs[l]; }).length, md = x.ai ? [x.ai.primaryMood].concat(x.ai.moodTags || []).filter(function (y) { return moods[y]; }).length : 0;
+    sc += lab * 0.5 + md * 0.5;
+    var why = [];
+    if (hasA) why.push('also has ' + (ix.names[A[0]] || t.artist));
+    if (hits.length) why.push(hits.length === 1 ? 'with ' + hits[0] : hits.length + ' artists that keep it company (' + hits.slice(0, 3).join(', ') + (hits.length > 3 ? '…' : '') + ')');
+    if (lab) why.push('same blog labels');
+    if (md) why.push('a similar mood');
+    return { m: x, sc: sc, why: why.join(' · ') };
+  }).filter(function (r) { return r.sc > 0.6; }).sort(function (a, b) { return b.sc - a.sc; });
+  return { t: t, same: same, tracks: tracks, mixes: mixes, coArr: coArr };
+}
+function moreRow(x, why) {
+  var t = x.t;
+  return '<li>' + tsLink(x.m, t) + '<div><span class="who">' + h(t.artist || '') + '</span>' + (t.artist ? ' – ' : '') + '<span class="what">' + h(t.title || '') + '</span><span class="alb">in <a href="' + h(mixHash(x.m, t.sec)) + '">' + h(x.m.title) + '</a> · ' + h(String(x.m.published || '').slice(0, 4)) + '</span>' + (why ? '<span class="why2">' + h(why) + '</span>' : '') + '</div><span class="rowacts">' + moreBtn(x.m, x.i, true) + likeBtn(t, x.i).replace('<button type="button" class="like"', '<button type="button" class="like" data-s="' + h(x.m.slug) + '"') + '</span></li>';
+}
+function moreMixHtml(r, why) {
+  var m = r.m;
+  return '<article class="pick"><a href="' + h(mixHash(m)) + '" tabindex="-1" aria-hidden="true">' + coverHtml(m) + '</a><div><h3><a href="' + h(mixHash(m)) + '">' + h(m.title) + '</a></h3><p class="note" style="margin-top:.2rem">' + h([String(m.published || '').slice(0, 4), dur(m._end), m.tracks.length + ' tracks', mark(m.slug).fav ? 'favourite' : '', mark(m.slug).heard ? 'heard' : ''].filter(Boolean).join(' · ')) + '</p><p class="why">' + h(why || r.why || '') + '</p></div></article>';
+}
+function renderMore(main, slug, i) {
+  if (!S.loaded) { main.innerHTML = '<section class="view">' + emptyState() + '</section>'; return; }
+  var m = S.bySlug[slug], t = m && m.tracks[i];
+  if (!t) { main.innerHTML = '<section class="view"><a class="back" href="#mixes">← All mixes</a><div class="empty" style="margin-top:1rem"><h2>That track isn’t in the room</h2></div></section>'; return; }
+  var r = moreLike(m, i), name = [t.artist, t.title].filter(Boolean).join(' – ');
+  main.innerHTML = '<section class="view"><a class="back" href="' + h(mixHash(m, t.sec)) + '">← ' + h(m.title) + '</a>' +
+    '<div class="more-head"><p class="spaced">M o r e &nbsp; l i k e &nbsp; t h i s</p><h1>' + h(name) + '</h1><p class="note">' + h([t.album, t.year].filter(Boolean).join(', ')) + (t.album || t.year ? ' · ' : '') + 'from <a href="' + h(mixHash(m, t.sec)) + '">' + h(m.title) + '</a> ' + tsLink(m, t) + '</p>' +
+    '<div class="actions">' + likeBtn(t, i).replace('<button type="button" class="like"', '<button type="button" class="like" data-s="' + h(m.slug) + '"') + '</div></div>' +
+    (!STANDALONE ? '<section class="sect" id="moreAi"></section>' : '') +
+    (r.same.length ? '<section class="sect"><h2 class="spaced">S a m e &nbsp; a r t i s t ,&nbsp; o t h e r &nbsp; m i x e s</h2><ol class="tl">' + r.same.slice(0, 8).map(function (x) { return moreRow(x, ''); }).join('') + '</ol></section>' : '') +
+    (r.tracks.length ? '<section class="sect"><h2 class="spaced">T r a c k s &nbsp; t h a t &nbsp; k e e p &nbsp; i t &nbsp; c o m p a n y</h2><p class="note">' + (r.same.length ? 'By artists that turn up in the same mixes as ' + h(t.artist || 'this one') + '.' : h(t.artist || 'This artist') + ' appears only here, so these are by artists from this mix, found in other mixes.') + '</p><ol class="tl">' + r.tracks.slice(0, 12).map(function (x) { return moreRow(x, x.why); }).join('') + '</ol></section>' : '') +
+    (r.mixes.length ? '<section class="sect"><h2 class="spaced">M i x e s &nbsp; t o &nbsp; t r y</h2><div class="picks">' + r.mixes.slice(0, 6).map(function (x) { return moreMixHtml(x); }).join('') + '</div></section>' : '') +
+    (!r.same.length && !r.tracks.length && !r.mixes.length ? '<p class="lede">Nothing in the archive connects to this track yet.</p>' : '') + '</section>';
+  if (!STANDALONE) runMoreClaude(m, i, r);
+}
+var moreCtl = null;
+async function runMoreClaude(m, i, r) {
+  var box = $('moreAi'); if (!box) return;
+  var key = m.slug + '--' + i; S._moreCache = S._moreCache || {};
+  var head = '<h2 class="spaced">C l a u d e ’ s &nbsp; p i c k s</h2>';
+  function draw(st, res) {
+    var b = $('moreAi'); if (!b || location.hash.indexOf('#more-' + key) !== 0) return;
+    if (!res) { b.innerHTML = head + st; return; }
+    b.innerHTML = head + (res.note ? '<p class="note" style="font-size:1rem;margin-top:0">' + h(res.note) + '</p>' : '') +
+      (res.tracks.length ? '<ol class="tl">' + res.tracks.map(function (x) { return moreRow(x, x.why); }).join('') + '</ol>' : '') +
+      (res.mixes.length ? '<div class="picks" style="margin-top:1.4rem">' + res.mixes.map(function (x) { return moreMixHtml(x, x.why); }).join('') + '</div>' : '') +
+      '<p class="note">Chosen by Claude from the archive’s own connections' + (res.taste ? ' and your liked tracks' : '') + '. The lists below are the raw connections.</p>';
+  }
+  if (S._moreCache[key]) { draw('', S._moreCache[key]); return; }
+  if (!S.sample && S.sampleP) { draw('<div class="status"><i></i>Connecting to Claude…</div>'); try { S.sample = await S.sampleP; } catch (e) {} }
+  if (!S.sample) { draw('<p class="note">Claude isn’t available in this view, so here are the archive’s connections.</p>'); return; }
+  var t = r.t, cands = [];
+  r.same.slice(0, 12).forEach(function (x) { cands.push({ x: x, kind: 'same artist' }); });
+  r.tracks.slice(0, 30).forEach(function (x) { cands.push({ x: x, kind: x.why }); });
+  var mixC = r.mixes.slice(0, 12);
+  if (!cands.length && !mixC.length) { draw('<p class="note">Nothing for Claude to choose from yet.</p>'); return; }
+  draw('<div class="status"><i></i>Claude is weighing ' + cands.length + ' tracks and ' + mixC.length + ' mixes…</div>');
+  if (moreCtl) moreCtl.abort(); var ctl = moreCtl = new AbortController();
+  var taste = typeof tasteOn === 'function' && tasteOn() ? likedList().slice(0, 40).map(function (x) { return [x.artist, x.title].filter(Boolean).join(' - '); }) : [];
+  var p = 'A listener of the Low Light Mixes archive liked this track and wants more like it.\n\nTRACK: ' + JSON.stringify({ artist: t.artist, title: t.title, album: t.album, year: t.year, inMix: m.title, mixDescription: (m.intro || '').slice(0, 1200), mixLabels: m.labels, mixSummary: m.ai && m.ai.summary }) +
+    (taste.length ? '\n\nOTHER TRACKS THEY LIKED: ' + JSON.stringify(taste) : '') +
+    '\n\nCANDIDATE TRACKS (id, artist, title, album, the mix it is in, and how it connects):\n' + JSON.stringify(cands.map(function (c, n) { return { id: n, artist: c.x.t.artist, title: c.x.t.title, album: c.x.t.album, mix: c.x.m.title, connection: c.kind }; })) +
+    '\n\nCANDIDATE MIXES (id, title, labels, summary, how it connects):\n' + JSON.stringify(mixC.map(function (c, n) { return { id: n, title: c.m.title, labels: c.m.labels, summary: c.m.ai && c.m.ai.summary ? c.m.ai.summary : (c.m.intro || '').slice(0, 240), connection: c.why }; })) +
+    '\n\nRULES: Use what you genuinely know about these artists and records (say "as far as I know" if unsure); never invent facts about a track or claim a sound you do not know. Where you do not know an artist, rely on the connection and the mix descriptions, and say so. Prefer variety: not several tracks by one artist, and at most two by the liked track\'s own artist. Pick 3 to 6 tracks and 1 to 3 mixes that a fan of this track would most likely enjoy, best first.' +
+    '\nReply only as JSON: {"note": one sentence on what links your picks, "tracks": [{"id": number, "why": one short sentence}], "mixes": [{"id": number, "why": one short sentence}]}';
+  try {
+    var res = await S.sample.json(p, { modelTier: 'default', signal: ctl.signal });
+    var out = { note: String((res && res.note) || '').slice(0, 300), taste: taste.length > 0, tracks: [], mixes: [] };
+    ((res && res.tracks) || []).forEach(function (o) { var c = cands[+o.id]; if (c && out.tracks.length < 6 && !out.tracks.some(function (y) { return y.m === c.x.m && y.i === c.x.i; })) out.tracks.push({ m: c.x.m, t: c.x.t, i: c.x.i, why: String(o.why || '').slice(0, 300) }); });
+    ((res && res.mixes) || []).forEach(function (o) { var c = mixC[+o.id]; if (c && out.mixes.length < 3 && out.mixes.indexOf(c) < 0) out.mixes.push({ m: c.m, why: String(o.why || '').slice(0, 300) }); });
+    if (!out.tracks.length && !out.mixes.length) throw { code: 'empty' };
+    S._moreCache[key] = out; draw('', out);
+  } catch (e) {
+    if (e && e.code === 'cancelled') return;
+    if (e && e.code === 'not_granted') S.sample = null;
+    draw('<p class="note warn">' + h((typeof ERRS !== 'undefined' && ERRS[e && e.code]) || 'Claude couldn’t choose just now.') + ' The archive’s connections are below.</p>');
+  }
+}
 
 // ------------------------------------------------------------ ARTISTS
 function artistIndex() {
@@ -1229,7 +1377,7 @@ function renderYours(main) {
   var lk = likedList();
   var likedHtml = lk.length ? '<ol class="tl liked" id="likedList">' + lk.map(function (x) {
     var m = S.bySlug[x.slug], t = { artist: x.artist, title: x.title, album: x.album, sec: x.sec };
-    return '<li>' + (m ? tsLink(m, t) : '<span class="ts">·</span>') + '<div><span class="who">' + h(x.artist || '') + '</span>' + (x.artist ? ' – ' : '') + '<span class="what">' + h(x.title || '') + '</span><span class="alb">' + (m ? 'in <a href="' + h(mixHash(m)) + '">' + h(m.title) + '</a>' : '') + (x.album ? (m ? ' · ' : '') + h(x.album) : '') + '</span></div>' + likeBtn(t) + '</li>';
+    return '<li>' + (m ? tsLink(m, t) : '<span class="ts">·</span>') + '<div><span class="who">' + h(x.artist || '') + '</span>' + (x.artist ? ' – ' : '') + '<span class="what">' + h(x.title || '') + '</span><span class="alb">' + (m ? 'in <a href="' + h(mixHash(m)) + '">' + h(m.title) + '</a>' : '') + (x.album ? (m ? ' · ' : '') + h(x.album) : '') + '</span></div><span class="rowacts">' + (m && idxOf(m, t) >= 0 ? moreBtn(m, idxOf(m, t), true) : '') + likeBtn(t) + '</span></li>';
   }).join('') + '</ol>' : '<p class="lede">' + (STANDALONE ? 'Tap the heart next to a track, or the Like button in the player while it plays.' : 'Tap the heart next to a track in any tracklist. Likes from the player copy arrive here with the daily task.') + '</p>';
   function grid(list, none) { return list.length ? '<div class="grid">' + list.map(function (m) { return cardHtml(m); }).join('') + '</div>' : '<p class="lede">' + none + '</p>'; }
   main.innerHTML = '<section class="view"><h1 class="v">Yours</h1><p class="lede">' + (STANDALONE ? 'Kept in this browser.' : (S.uid ? 'Private to you: nobody else who opens this room sees these.' : 'Kept in this browser for now.')) + '</p>' +
