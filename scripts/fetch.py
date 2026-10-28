@@ -144,13 +144,32 @@ def split_track(rest):
     return artist, title, album, year
 
 
+def is_continuation(prev_raw, line):
+    """True when `line` finishes the track entry above it rather than starting something new."""
+    if len(line) > 200 or HEADER.search(line) or line.lower().startswith(("http", "[")) or SEP.search(line):
+        return False
+    if prev_raw.count("(") > prev_raw.count(")"):
+        return True  # the entry above left a bracket open
+    return bool(YEAR_PAREN.search(line)) and not YEAR_PAREN.search(prev_raw)
+
+
 def find_tracklist(lines):
     """Return (tracks, endSeconds, startIndex) or ([], None, None)."""
     # 1) timestamped lines
     tracks, end, start = [], None, None
+    last_i = None
     for i, l in enumerate(lines):
         m = TS_LINE.match(l)
         if not m:
+            # A long entry the blog wrapped onto a second line: join it to the track just above.
+            if tracks and last_i == i - 1 and is_continuation(tracks[-1]["raw"], l):
+                tr = tracks[-1]
+                raw = tr["raw"] + " " + l
+                rest = TS_LINE.match(raw)
+                if rest:
+                    tr["artist"], tr["title"], tr["album"], tr["year"] = split_track(rest.group(3))
+                tr["raw"] = raw[:300]
+                last_i = i
             continue
         t, _t2, rest = m.group(1), m.group(2), m.group(3).strip()
         if re.fullmatch(r"end\.?|the end\.?|fin\.?", rest, re.I):
@@ -161,6 +180,7 @@ def find_tracklist(lines):
             start = i
         tracks.append({"t": t, "sec": secs(t), "artist": artist, "title": title,
                        "album": album, "year": year, "raw": l[:300]})
+        last_i = i
     if len(tracks) >= 3:
         return tracks, end, start
     # 2) numbered lines "1. Artist - Title"
@@ -419,6 +439,25 @@ def choose_mixcloud(keys, title, published, shows):
     return None
 
 
+def mixcloud_creator_comments(key):
+    """The uploader's own comments on one Mixcloud upload, oldest first, as [{author, published, lines}]."""
+    url = "https://api.mixcloud.com" + urllib.parse.quote(key) + "comments/?limit=100"
+    out, pages = [], 0
+    while url and pages < 5:
+        d = get_json(url)
+        for c in d.get("data", []) or []:
+            u = c.get("user") or {}
+            if str(u.get("username") or "").lower() != MIXCLOUD_USER:
+                continue
+            text = str(c.get("comment") or "")
+            out.append({"author": u.get("name") or u.get("username"), "published": c.get("submit_date"),
+                        "lines": [clean(l) for l in text.splitlines() if clean(l)]})
+        url = (d.get("paging") or {}).get("next")
+        pages += 1
+        time.sleep(0.5)
+    return sorted(out, key=lambda c: c.get("published") or "")
+
+
 def mixcloud_shows():
     shows = {}
     url = f"https://api.mixcloud.com/{MIXCLOUD_USER}/cloudcasts/?limit=100"
@@ -485,6 +524,7 @@ def main():
         notes.append(f"Mixcloud details not read ({e})")
 
     mixes, new = {}, []
+    mc_read, mc_found, mc_errors = 0, 0, []
     for e in entries:
         m = parse_post(e)
         s = m["slug"]
@@ -512,6 +552,20 @@ def main():
         m["mixcloudUrl"] = ("https://www.mixcloud.com" + urllib.parse.quote(m["mixcloudKey"])) if m["mixcloudKey"] else None
         sh = shows.get(m["mixcloudKey"].lower()) if m["mixcloudKey"] else None
         m["mixcloud"] = sh  # null when there's no matching upload, so stale details are cleared downstream
+        if sh and not any(t.get("sec") is not None for t in m["tracks"]):
+            # No timed tracklist on the blog: the creator often posts one in a comment on Mixcloud.
+            try:
+                for c in mixcloud_creator_comments(m["mixcloudKey"]):
+                    tr, end, _ = find_tracklist(c["lines"])
+                    if tr and any(t.get("sec") is not None for t in tr):
+                        m["tracks"], m["endSec"] = tr, end or m["endSec"]
+                        m["tracklistSource"] = "mixcloud-comment"
+                        m["tracklistComment"] = {"author": c["author"], "published": c["published"]}
+                        mc_found += 1
+                        break
+                mc_read += 1
+            except Exception as e:  # noqa: BLE001
+                mc_errors.append(f"{m['mixcloudKey']}: {e}")
         if sh:
             if not m["endSec"] and sh.get("audioLength"):
                 m["endSec"] = sh["audioLength"]
@@ -564,6 +618,8 @@ def main():
         "tracklistsFromComments": from_comments, "newThisRun": new[:200],
         "mixcloudMatched": sum(1 for m in mixes.values() if m.get("mixcloud")),
         "coversSaved": got, "notes": notes,
+        "mixcloudCommentsRead": mc_read, "tracklistsFromMixcloudComments": mc_found,
+        "mixcloudCommentErrors": mc_errors[:10],
     }
     json.dump(st, open(status_path, "w", encoding="utf-8"), indent=1, ensure_ascii=False)
     print(result)
