@@ -439,6 +439,29 @@ def choose_mixcloud(keys, title, published, shows):
     return None
 
 
+def assign_shared_uploads(posts, shows):
+    """One Mixcloud upload, one post: when several posts picked the same upload, the post whose title
+    matches the upload's name keeps it; another keeps it only if its title matches nearly as well
+    (a "download" post for the same mix). The rest look for an upload of their own by title, or go without."""
+    by = {}
+    for m in posts:
+        if m.get("mixcloudKey"):
+            by.setdefault(m["mixcloudKey"].lower(), []).append(m)
+    taken = set(by)
+    for k, group in by.items():
+        sh = shows.get(k)
+        if len(group) < 2 or not sh:
+            continue
+        scored = sorted(((_sim(sh.get("name"), m["title"]), m) for m in group), key=lambda x: -x[0])
+        for sc, m in scored[1:]:
+            if sc >= 0.8 or (_words(sh.get("name")) and _words(sh.get("name")) <= _words(m["title"])):
+                continue
+            free = {kk: v for kk, v in shows.items() if kk not in taken}
+            m["mixcloudKey"] = choose_mixcloud([], m["title"], m["published"], free)
+            if m["mixcloudKey"]:
+                taken.add(m["mixcloudKey"].lower())
+
+
 def mixcloud_creator_comments(key):
     """The uploader's own comments on one Mixcloud upload, oldest first, as [{author, published, lines}]."""
     url = "https://api.mixcloud.com" + urllib.parse.quote(key) + "comments/?limit=100"
@@ -525,8 +548,11 @@ def main():
 
     mixes, new = {}, []
     mc_read, mc_found, mc_errors = 0, 0, []
-    for e in entries:
-        m = parse_post(e)
+    posts = [parse_post(e) for e in entries]
+    for m in posts:
+        m["mixcloudKey"] = choose_mixcloud(m.pop("_mcKeys", []), m["title"], m["published"], shows)
+    assign_shared_uploads(posts, shows)
+    for m in posts:
         s = m["slug"]
         n = 2
         while s in mixes:
@@ -548,7 +574,6 @@ def main():
                 m["tracks"], m["endSec"] = best[0], best[1] or m["endSec"]
                 m["tracklistSource"] = "comment"
                 m["tracklistComment"] = {"author": best[3]["author"], "published": best[3]["published"]}
-        m["mixcloudKey"] = choose_mixcloud(m.pop("_mcKeys", []), m["title"], m["published"], shows)
         m["mixcloudUrl"] = ("https://www.mixcloud.com" + urllib.parse.quote(m["mixcloudKey"])) if m["mixcloudKey"] else None
         sh = shows.get(m["mixcloudKey"].lower()) if m["mixcloudKey"] else None
         m["mixcloud"] = sh  # null when there's no matching upload, so stale details are cleared downstream
