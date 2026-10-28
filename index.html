@@ -109,13 +109,19 @@ h1.v{font:400 clamp(1.9rem,4.6vw,2.7rem)/1.1 var(--display);margin:0 0 .5rem;tex
 .strip .head{position:absolute;top:0;bottom:0;width:2px;background:var(--ink);pointer-events:none;left:0}
 .ticks{display:flex;justify-content:space-between;font:.72rem var(--mono);color:var(--muted);margin-top:.3rem}
 ol.tl{list-style:none;margin:1.2rem 0 0;padding:0;counter-reset:n}
-ol.tl li{display:grid;grid-template-columns:4.4rem minmax(0,1fr);gap:.2rem 1rem;padding:.55rem 0;border-bottom:1px solid var(--line);align-items:baseline}
+ol.tl li{display:grid;grid-template-columns:4.4rem minmax(0,1fr) auto;gap:.2rem 1rem;padding:.55rem 0;border-bottom:1px solid var(--line);align-items:baseline}
 ol.tl li.now{background:linear-gradient(90deg,var(--haze),transparent)}
 ol.tl li.now .who::before{content:"";display:inline-block;width:.45rem;height:.45rem;border-radius:50%;background:var(--tape);margin-right:.45rem;vertical-align:.12em}
 .ts{font:500 .92rem var(--mono);color:var(--tape);background:none;border:0;padding:0;text-align:left;cursor:pointer;text-decoration:none;font-variant-numeric:tabular-nums}
 .ts:hover{color:var(--ink);text-decoration:underline}
 span.ts{cursor:default;color:var(--muted)}
 .who{font-weight:700}
+.like{background:none;border:0;padding:.2rem .35rem;margin:-.2rem 0;cursor:pointer;color:var(--muted);line-height:0;border-radius:.3rem;align-self:center}
+.like svg{width:1.05rem;height:1.05rem;fill:none;stroke:currentColor;stroke-width:1.7}
+.like:hover{color:var(--ink)}
+.like[aria-pressed="true"]{color:var(--glow)}
+.like[aria-pressed="true"] svg{fill:currentColor}
+ol.tl.liked .ts{font-size:.85rem}
 .what{color:var(--ink)}
 .alb{display:block;font-size:.85rem;color:var(--muted)}
 .alb a{font-size:.82rem}
@@ -186,6 +192,12 @@ details.desc p{white-space:pre-line;color:var(--muted);max-width:64ch;margin:.5r
 .player .ctl{display:flex;gap:.4rem}
 .player .ctl button{background:none;border:1px solid var(--line);border-radius:999px;padding:.2rem .7rem;font-size:.82rem;cursor:pointer;color:var(--muted)}
 .player .ctl button[aria-pressed="true"]{color:var(--ink);border-color:var(--glow)}
+.player .ctl button.plike{display:inline-flex;align-items:center;gap:.35rem}
+.player .ctl button.plike svg{width:.85rem;height:.85rem;fill:none;stroke:currentColor;stroke-width:1.8}
+.player .ctl button.plike[aria-pressed="true"]{color:var(--glow);border-color:var(--glow)}
+.player .ctl button.plike[aria-pressed="true"] svg{fill:currentColor}
+.player .ctl button.plike:disabled{opacity:.4;cursor:default}
+@media(max-width:30rem){.player .ctl button.plike span{display:none}}
 .player .slot{grid-column:1/-1;min-width:0}
 .player iframe{display:block;width:100%;height:60px;border:0}
 .player audio{display:block;width:100%}
@@ -241,7 +253,7 @@ footer{margin-top:4rem;padding-top:1rem;border-top:1px solid var(--line);font-si
 <div class="player" id="player" hidden>
   <div class="in">
     <div class="now" id="pNow"></div>
-    <div class="ctl"><button type="button" id="pMc" aria-pressed="true">Mixcloud</button><button type="button" id="pMp3" aria-pressed="false">MP3</button><button type="button" id="pClose" aria-label="Close the player">✕</button></div>
+    <div class="ctl"><button type="button" id="pLike" class="plike" aria-pressed="false" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 8 3.3 4.5 6.9 4.5c2.1 0 3.6 1.2 5.1 3 1.5-1.8 3-3 5.1-3 3.6 0 5.5 3.5 4.2 6.8-1.8 4.6-9.3 9.2-9.3 9.2z"/></svg><span>Like</span></button><button type="button" id="pMc" aria-pressed="true">Mixcloud</button><button type="button" id="pMp3" aria-pressed="false">MP3</button><button type="button" id="pClose" aria-label="Close the player">✕</button></div>
     <div class="slot" id="pSlot"></div>
   </div>
 </div>
@@ -317,6 +329,36 @@ function noteOpened(slug) {
   r.unshift({ slug: slug, at: new Date().toISOString() });
   S.memory.recent = r.slice(0, 60);
   saveMemory();
+}
+
+// ------------------------------------------------------------ liked tracks
+// Kept with the heard/favourite marks: { "artist|title": {on, artist, title, album, slug, sec, ts} }.
+// Unlikes stay as on:false so two copies can be merged by the newest change.
+var HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 8 3.3 4.5 6.9 4.5c2.1 0 3.6 1.2 5.1 3 1.5-1.8 3-3 5.1-3 3.6 0 5.5 3.5 4.2 6.8-1.8 4.6-9.3 9.2-9.3 9.2z"/></svg>';
+function trackKey(t) { return squash(t && t.artist) + '|' + squash(t && t.title); }
+function likeable(t) { return !!(t && (t.artist || t.title)); }
+function liked(t) { var x = (S.memory.tracks || {})[trackKey(t)]; return !!(x && x.on); }
+function mergeTracks(a, b) { var out = Object.assign({}, a || {}); Object.keys(b || {}).forEach(function (k) { var x = b[k]; if (x && (!out[k] || String(x.ts || '') > String(out[k].ts || ''))) out[k] = x; }); return out; }
+function setLike(slug, t, on) {
+  if (!likeable(t)) return;
+  S.memory.tracks = S.memory.tracks || {};
+  var k = trackKey(t), name = [t.artist, t.title].filter(Boolean).join(' – ');
+  S.memory.tracks[k] = { on: !!on, artist: t.artist || '', title: t.title || '', album: t.album || '', slug: slug, sec: t.sec == null ? null : t.sec, ts: new Date().toISOString() };
+  saveMemory(); Likes.push(); refreshLikes();
+  toast((on ? 'Liked: ' : 'Unliked: ') + name, 2200);
+}
+function likeBtn(t, i) {
+  if (!likeable(t)) return '<span></span>';
+  var on = liked(t), name = [t.artist, t.title].filter(Boolean).join(' – ');
+  return '<button type="button" class="like" data-k="' + h(trackKey(t)) + '"' + (i != null ? ' data-i="' + i + '"' : '') + ' aria-pressed="' + on + '" aria-label="Like ' + h(name) + '" title="' + (on ? 'Liked' : 'Like this track') + '">' + HEART + '</button>';
+}
+function refreshLikes() {
+  document.querySelectorAll('button.like[data-k]').forEach(function (b) { var x = (S.memory.tracks || {})[b.dataset.k], on = !!(x && x.on); b.setAttribute('aria-pressed', on); b.title = on ? 'Liked' : 'Like this track'; });
+  if (typeof Player !== 'undefined') Player.paint();
+}
+function likedList() {
+  var tr = S.memory.tracks || {};
+  return Object.keys(tr).filter(function (k) { return tr[k] && tr[k].on; }).map(function (k) { return Object.assign({ key: k }, tr[k]); }).sort(function (a, b) { return String(b.ts).localeCompare(String(a.ts)); });
 }
 
 // ------------------------------------------------------------ covers
@@ -493,7 +535,7 @@ function renderMix(main, slug, at) {
   var tl = m.tracks.length ? '<ol class="tl" id="tl">' + m.tracks.map(function (t, i) {
     var lk = linkFor(t, m.links);
     return '<li data-i="' + i + '"' + (t.sec != null ? ' data-at="' + t.sec + '"' : '') + '>' + tsLink(m, t) + '<div><span class="who">' + h(t.artist || '') + '</span>' + (t.artist ? ' – ' : '') + '<span class="what">' + h(t.title || '') + '</span>' +
-      ((t.album || t.year || lk) ? '<span class="alb">' + h([t.album, t.year].filter(Boolean).join(', ')) + (lk ? ' <a href="' + h(lk) + '" target="_blank" rel="noopener">' + h(siteName(lk)) + '</a>' : '') + '</span>' : '') + '</div></li>';
+      ((t.album || t.year || lk) ? '<span class="alb">' + h([t.album, t.year].filter(Boolean).join(', ')) + (lk ? ' <a href="' + h(lk) + '" target="_blank" rel="noopener">' + h(siteName(lk)) + '</a>' : '') + '</span>' : '') + '</div>' + likeBtn(t, i) + '</li>';
   }).join('') + '</ol>' : '<p class="note">No tracklist yet. The blog sometimes adds one later in the comments; the daily check looks there too.</p>';
   var src = m.tracklistSource === 'comment' ? '<p class="note">Tracklist taken from a comment' + (m.tracklistComment && m.tracklistComment.author ? ' by ' + h(m.tracklistComment.author) : '') + (m.tracklistComment && m.tracklistComment.published ? ', ' + h(dateStr(m.tracklistComment.published)) : '') + '.</p>' : '';
   var hint = timed.length ? (STANDALONE ? '<p class="note">Tap a time to jump there. Mixcloud sometimes refuses to skip ahead; then the MP3 takes over.</p>' : (pl ? '<p class="note">The times open the player copy of this room at that spot (this page can’t hold a player itself).</p>' : '<p class="note">The times can jump straight into the mix once the player copy is set up (see About).</p>')) : '';
@@ -512,6 +554,8 @@ function renderMix(main, slug, at) {
   noteOpened(m.slug);
   var ix = main.querySelector('.view');
   ix.addEventListener('click', function (e) {
+    var lb = e.target.closest('button.like[data-i]');
+    if (lb) { var lt = m.tracks[+lb.dataset.i]; setLike(m.slug, lt, !liked(lt)); return; }
     var mb = e.target.closest('[data-mark]');
     if (mb) { var on = mb.getAttribute('aria-pressed') !== 'true'; mb.setAttribute('aria-pressed', on); setMark(m.slug, mb.dataset.mark, on); return; }
     var pb = e.target.closest('[data-play]');
@@ -582,8 +626,9 @@ var Player = {
         if (Player.mix !== m || !Mc) return;
         var w = Player.widget = Mc.PlayerWidget(ifr);
         w.ready.then(function () {
-          w.events.progress.on(function (p) { Player.playing = true; Player.tick(p, true); });
-          w.events.play.on(function () { Player.playing = true; if (Player.pending != null) { var s = Player.pending; Player.pending = null; setTimeout(function () { Player.seek(s); }, 300); } });
+          // Seek only once audio is really moving (first progress tick); seeking on the play event alone is often ignored.
+          w.events.progress.on(function (p) { if (Player.widget !== w) return; Player.playing = true; if (Player.pending != null) { var s = Player.pending; Player.pending = null; Player.seekMc(s); } Player.tick(p, true); });
+          w.events.play.on(function () { if (Player.widget === w) Player.playing = true; });
           w.events.pause.on(function () { Player.playing = false; Log.flush(); });
           w.play();
         });
@@ -596,20 +641,46 @@ var Player = {
     var self = this, m = this.mix;
     if (this.mode === 'mp3' && this.audio) { this.audio.currentTime = sec; this.audio.play().catch(function () {}); this.tick(sec); return; }
     if (this.mode === 'mc') {
+      this.target = sec; this.pos = sec; this.paint();
       if (!this.widget || !this.playing) { this.pending = sec; if (this.widget) this.widget.play(); return; }
-      Promise.resolve(this.widget.seek(sec)).then(function (ok) {
-        if (ok === false) {
-          if (okUrl(m.mp3Url)) { toast('Mixcloud didn’t allow the jump, so the MP3 plays from ' + fmt(sec) + '.', 4200); self.open(m, 'mp3', sec); }
-          else toast('Mixcloud didn’t allow jumping in this mix.');
-        } else self.tick(sec);
-      }).catch(function () { if (okUrl(m.mp3Url)) self.open(m, 'mp3', sec); });
+      this.seekMc(sec);
     }
   },
-  tick: function (pos, playing) { this.pos = pos; Log.tick(pos, playing == null ? this.playing : playing); this.paint(); },
+  // Mixcloud often accepts a seek but keeps playing from the start while it buffers.
+  // Seek, check the real position, and try again (up to ~8 s) before falling back to the MP3.
+  seekMc: function (sec) {
+    var self = this, m = this.mix, w = this.widget, tok = this.seekTok = (this.seekTok || 0) + 1, tries = 0, refused = 0;
+    this.target = sec; this.pos = sec; this.paint();
+    function stale() { return self.seekTok !== tok || self.widget !== w || self.mix !== m; }
+    function done(p) { if (stale()) return; self.target = null; Log.lastPos = p; self.tick(p, true); }
+    function giveUp() {
+      if (stale()) return; self.target = null;
+      if (okUrl(m.mp3Url)) { toast('Mixcloud didn’t allow the jump, so the MP3 plays from ' + fmt(sec) + '.', 4200); self.open(m, 'mp3', sec); }
+      else toast('Mixcloud didn’t allow jumping to ' + fmt(sec) + ' in this mix.');
+    }
+    function again() { if (tries < 8 && refused < 3) setTimeout(attempt, 450); else giveUp(); }
+    function check() {
+      if (stale()) return;
+      Promise.resolve(w.getPosition()).then(function (p) { if (stale()) return; if (Math.abs(p - sec) <= 6) done(p); else again(); }, again);
+    }
+    function attempt() {
+      if (stale()) return; tries++;
+      Promise.resolve(w.seek(sec)).then(function (ok) { if (ok === false) refused++; setTimeout(check, 650); }, function () { setTimeout(check, 650); });
+    }
+    attempt();
+  },
+  tick: function (pos, playing) {
+    // While a jump is settling, ignore the stray ticks from the old spot (they'd show the wrong track and count as listening).
+    if (this.target != null && Math.abs(pos - this.target) > 6) { Log.lastPos = null; return; }
+    this.pos = pos; Log.tick(pos, playing == null ? this.playing : playing); this.paint();
+  },
   paint: function () {
     var m = this.mix; if (!m) return;
     var cur = null; m.tracks.forEach(function (t, i) { if (t.sec != null && t.sec <= Player.pos + 0.5) cur = i; });
     var t = cur != null ? m.tracks[cur] : null;
+    this.curTrack = t;
+    var lkb = $('pLike');
+    if (lkb) { var can = likeable(t), on = can && liked(t); lkb.disabled = !can; lkb.setAttribute('aria-pressed', on); lkb.title = can ? (on ? 'Liked: ' : 'Like the track playing now: ') + [t.artist, t.title].filter(Boolean).join(' – ') : 'No track is playing yet'; lkb.setAttribute('aria-label', lkb.title); lkb.querySelector('span').textContent = on ? 'Liked' : 'Like'; }
     $('pNow').innerHTML = '<b>' + h(m.title) + '</b>' + (t ? ' · ' + h([t.artist, t.title].filter(Boolean).join(' – ')) : '') + ' · ' + fmt(this.pos);
     if (S.tab === 'mix' && S.bySlug[m.slug] && location.hash.indexOf('#m-' + m.slug) === 0) {
       document.querySelectorAll('#tl li').forEach(function (li) { li.classList.toggle('now', +li.dataset.i === cur); });
@@ -620,7 +691,7 @@ var Player = {
   close: function (keep) {
     if (!keep) Log.end();
     if (this.audio) { this.audio.pause(); this.audio.src = ''; }
-    this.audio = null; this.widget = null; this.pending = null; this.playing = false;
+    this.audio = null; this.widget = null; this.pending = null; this.playing = false; this.target = null; this.seekTok = (this.seekTok || 0) + 1;
     $('pSlot').replaceChildren();
     if (!keep) { this.mix = null; this.mode = null; $('player').hidden = true; }
   }
@@ -641,6 +712,7 @@ function loadMcApi() {
 $('pMc').addEventListener('click', function () { if (Player.mix) Player.open(Player.mix, 'mc', Player.pos || null); });
 $('pMp3').addEventListener('click', function () { if (Player.mix) Player.open(Player.mix, 'mp3', Player.pos || null); });
 $('pClose').addEventListener('click', function () { Player.close(); });
+$('pLike').addEventListener('click', function () { var t = Player.curTrack; if (Player.mix && likeable(t)) setLike(Player.mix.slug, t, !liked(t)); });
 
 // ------------------------------------------------------------ LISTENING LOG (player copy only)
 // Sessions are kept in this browser and, when connected, in a private GitHub repository (log/YYYY-MM.json).
@@ -724,6 +796,33 @@ var Log = {
     } catch (e) { this.err = (e && e.message) || 'Could not reach GitHub'; }
     if (S.tab === 'listening') drawListening();
     if (S.tab === 'mix') route();
+  }
+};
+// Liked tracks also go to likes.json in the same private repository, so they follow you between devices.
+var Likes = {
+  busy: false, again: false, t: null,
+  push: function () { if (!STANDALONE || !Log.cfg) return; var self = this; clearTimeout(this.t); this.t = setTimeout(function () { self.sync(); }, 1500); },
+  sync: async function () {
+    if (!STANDALONE || !Log.cfg) return;
+    if (this.busy) { this.again = true; return; }
+    this.busy = true;
+    try {
+      for (var attempt = 0; attempt < 2; attempt++) {
+        var r = await Log.api('/contents/likes.json'), sha = null, file = { tracks: {} };
+        if (r.ok) { var j = await r.json(); sha = j.sha; try { file = JSON.parse(Log.b64d(j.content)); } catch (e) {} }
+        else if (r.status !== 404) throw new Error('GitHub said ' + r.status);
+        var theirs = file.tracks || {}, merged = mergeTracks(theirs, S.memory.tracks || {});
+        S.memory.tracks = merged; lsSet('lowlight-memory', S.memory);
+        var changed = Object.keys(merged).some(function (k) { return !theirs[k] || theirs[k].ts !== merged[k].ts; });
+        if (!changed) break;
+        var put = await Log.api('/contents/likes.json', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'Liked tracks', content: Log.b64e(JSON.stringify({ tracks: merged }, null, 1)), sha: sha || undefined }) });
+        if (put.ok) break;
+        if (put.status !== 409 && put.status !== 422) throw new Error('GitHub said ' + put.status);
+      }
+    } catch (e) {}
+    this.busy = false;
+    refreshLikes(); if (S.tab === 'yours') renderYours($('main'));
+    if (this.again) { this.again = false; this.sync(); }
   }
 };
 setInterval(function () { if (STANDALONE) Log.push(); }, 120000);
@@ -874,10 +973,10 @@ function bindLs() {
       if (!j.private) throw new Error('That repository is public, so your listening would be visible to anyone. Make it private (Settings → General → Danger zone) and try again.');
       Log.cfg = { repo: repo, token: tok }; lsSet('lowlight-gh', Log.cfg);
       msg.className = 'msg good'; msg.textContent = 'Connected.';
-      await Log.pull(); await Log.push(); drawListening();
+      await Log.pull(); await Log.push(); Likes.sync(); drawListening();
     } catch (err) { msg.className = 'msg err'; msg.textContent = err.message; }
   });
-  var sy = $('lsSync'); if (sy) sy.addEventListener('click', async function () { sy.disabled = true; await Log.push(); await Log.pull(); });
+  var sy = $('lsSync'); if (sy) sy.addEventListener('click', async function () { sy.disabled = true; await Log.push(); await Log.pull(); Likes.sync(); });
   var off = $('lsOff'); if (off) off.addEventListener('click', function () { Log.cfg = null; try { localStorage.removeItem('lowlight-gh'); } catch (e) {} drawListening(); });
   var am = $('lsAllMixes'); if (am) am.addEventListener('click', function () { var A = trackStats().artists[S.lsArtist]; if (A) { S.openArtist = A.key; S.artistQ = A.name; } });
   var ac2 = $('lsAClose'); if (ac2) ac2.addEventListener('click', function () { S.lsArtist = null; drawListening(); });
@@ -1099,11 +1198,24 @@ function renderYours(main) {
   var fav = Object.keys(mk).filter(function (s) { return mk[s].fav && S.bySlug[s]; }).map(function (s) { return S.bySlug[s]; });
   var heard = Object.keys(mk).filter(function (s) { return mk[s].heard && S.bySlug[s]; }).map(function (s) { return S.bySlug[s]; });
   var recent = (S.memory.recent || []).map(function (r) { return S.bySlug[r.slug]; }).filter(Boolean).slice(0, 12);
+  var lk = likedList();
+  var likedHtml = lk.length ? '<ol class="tl liked" id="likedList">' + lk.map(function (x) {
+    var m = S.bySlug[x.slug], t = { artist: x.artist, title: x.title, album: x.album, sec: x.sec };
+    return '<li>' + (m ? tsLink(m, t) : '<span class="ts">·</span>') + '<div><span class="who">' + h(x.artist || '') + '</span>' + (x.artist ? ' – ' : '') + '<span class="what">' + h(x.title || '') + '</span><span class="alb">' + (m ? 'in <a href="' + h(mixHash(m)) + '">' + h(m.title) + '</a>' : '') + (x.album ? (m ? ' · ' : '') + h(x.album) : '') + '</span></div>' + likeBtn(t) + '</li>';
+  }).join('') + '</ol>' : '<p class="lede">' + (STANDALONE ? 'Tap the heart next to a track, or the Like button in the player while it plays.' : 'Tap the heart next to a track in any tracklist. While a mix plays in the player copy, its Like button saves the track playing at that moment.') + '</p>';
   function grid(list, none) { return list.length ? '<div class="grid">' + list.map(function (m) { return cardHtml(m); }).join('') + '</div>' : '<p class="lede">' + none + '</p>'; }
   main.innerHTML = '<section class="view"><h1 class="v">Yours</h1><p class="lede">' + (STANDALONE ? 'Kept in this browser.' : (S.uid ? 'Private to you: nobody else who opens this room sees these.' : 'Kept in this browser for now.')) + '</p>' +
-    '<section class="sect" style="margin-top:1rem"><h2 class="spaced">F a v o u r i t e s</h2>' + grid(fav, 'Mark a mix as a favourite from its page.') + '</section>' +
+    '<section class="sect" style="margin-top:1rem"><h2 class="spaced">L i k e d &nbsp; t r a c k s</h2>' + likedHtml + (STANDALONE && lk.length ? '<p class="note">' + (Log.cfg ? 'Also saved to your private repository, so they follow you to other devices.' : 'Connect a private repository on the Listening page to keep these on every device.') + '</p>' : '') + '</section>' +
+    '<section class="sect"><h2 class="spaced">F a v o u r i t e &nbsp; m i x e s</h2>' + grid(fav, 'Mark a mix as a favourite from its page.') + '</section>' +
     '<section class="sect"><h2 class="spaced">R e c e n t l y &nbsp; o p e n e d</h2>' + grid(recent, 'Mixes you open appear here.') + '</section>' +
     '<section class="sect"><h2 class="spaced">H e a r d</h2>' + grid(heard, 'Mixes you mark as heard. Ask only uses this when you ask for something new, or something you know.') + '</section></section>';
+  var ll = $('likedList');
+  if (ll) ll.addEventListener('click', function (e) {
+    var b = e.target.closest('button.like'); if (!b) return;
+    var x = (S.memory.tracks || {})[b.dataset.k]; if (!x) return;
+    setLike(x.slug, { artist: x.artist, title: x.title, album: x.album, sec: x.sec }, !x.on);
+    renderYours(main);
+  });
 }
 
 // ------------------------------------------------------------ ABOUT
@@ -1153,6 +1265,7 @@ if (STANDALONE) {
   fetch('data/mixes.json', { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw 0; return r.json(); })
     .then(function (d) { var ms = d && d.mixes ? Object.keys(d.mixes).map(function (k) { return d.mixes[k]; }) : []; setMixes(ms); })
     .catch(function () { setMixes([]); });
+  if (Log.cfg) Likes.sync();
   fetch('data/status.json', { cache: 'no-cache' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (s) { if (s) { S.monitor = s; if (S.tab === 'about') route(); } }).catch(function () {});
 } else {
   S.sampleP = Promise.resolve(window.claude.use('sample')).catch(function () { return null; });
@@ -1174,7 +1287,7 @@ if (STANDALONE) {
       first = false;
     }, function () { setMixes([]); });
     if (S.uid) db.doc('data/users/' + S.uid + '/memory').get().then(function (s) {
-      if (s.exists) { var d = s.data() || {}; S.memory = { marks: Object.assign({}, S.memory.marks, d.marks || {}), recent: d.recent || S.memory.recent || [] }; lsSet('lowlight-memory', S.memory); if (S.tab === 'yours') route(); }
+      if (s.exists) { var d = s.data() || {}; S.memory = { marks: Object.assign({}, S.memory.marks, d.marks || {}), recent: d.recent || S.memory.recent || [], tracks: mergeTracks(S.memory.tracks, d.tracks) }; lsSet('lowlight-memory', S.memory); if (S.tab === 'yours') route(); }
     }).catch(function () {});
     S.sample = await S.sampleP;
   })();
