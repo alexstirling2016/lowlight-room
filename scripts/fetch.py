@@ -21,7 +21,7 @@ import sys
 import time
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from html.parser import HTMLParser
 
 BLOG = "https://lowlightmixes.blogspot.com"
@@ -261,6 +261,7 @@ def parse_post(e):
 
     mix_url = None
     key = None
+    keys = []  # candidate Mixcloud keys: embedded players first, then links, in page order
     mp3 = None
     music = []
     seen = set()
@@ -268,8 +269,10 @@ def parse_post(e):
         h = html.unescape(href or "").strip()
         if not h.startswith("http"):
             continue
-        if "mixcloud.com" in h and not key:
-            key = mixcloud_key(h)
+        if "mixcloud.com" in h:
+            k = mixcloud_key(h)
+            if k:
+                keys.append((k, False))
         if re.search(r"\.mp3(\?|$)", h, re.I) and not mp3:
             mp3 = h
         if SKIP_LINK.search(h):
@@ -279,11 +282,8 @@ def parse_post(e):
             continue
         seen.add(norm)
         music.append({"url": h[:400], "text": (text or "")[:160]})
-    for src in page.iframes:
-        if "mixcloud" in src and not key:
-            key = mixcloud_key(src)
-    if key:
-        mix_url = "https://www.mixcloud.com" + urllib.parse.quote(key)
+    frames = [(mixcloud_key(src), True) for src in page.iframes if "mixcloud" in src]
+    keys = [kk for kk in frames if kk[0]] + keys
 
     # intro: text before the tracklist / header, minus link labels and bare urls
     stop = start if start is not None else len(lines)
@@ -314,6 +314,7 @@ def parse_post(e):
         "coverUrl": cover,
         "mixcloudUrl": mix_url,
         "mixcloudKey": key,
+        "_mcKeys": keys,
         "mp3Url": mp3,
         "links": music[:80],
         "tracks": tracks,
@@ -359,6 +360,63 @@ def all_comments():
         if not es or start > total:
             return by_post
         time.sleep(1)
+
+
+# Mixcloud paths that are profile pages, not uploads.
+MC_RESERVED = {"posts", "select", "uploads", "favorites", "favourites", "listens", "playlists", "followers",
+               "following", "stream", "activity", "shows", "reposts", "history", "upload", "live"}
+OLDER_SHOW_DAYS = 21
+
+
+def _when(s):
+    try:
+        return datetime.fromisoformat(str(s).replace("Z", "+00:00"))
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _words(s):
+    return set(w for w in re.findall(r"[a-z0-9]+", (s or "").lower()) if w not in ("by", "the", "a", "of", "and", "vol"))
+
+
+def _sim(a, b):
+    wa, wb = _words(a), _words(b)
+    return len(wa & wb) / max(1, len(wa | wb))
+
+
+def choose_mixcloud(keys, title, published, shows):
+    """Pick the Mixcloud upload that belongs to this post.
+
+    Posts often link to earlier mixes ("Vol. 1", the original of a sequel), and those links used to win.
+    A candidate is refused when it is a profile page, or when it is one of the account's uploads that went
+    up well before the post (it is an older mix being referred to). Unknown keys (another account's upload)
+    are kept only when embedded as the post's player. Without a usable candidate, an upload whose name
+    matches the title and that went up around the post's date is used."""
+    pub = _when(published)
+    for k, embedded in keys:
+        seg = k.strip("/").split("/")
+        if len(seg) != 2 or seg[1].lower() in MC_RESERVED:
+            continue
+        sh = shows.get(k.lower())
+        if sh:
+            made = _when(sh.get("created"))
+            if pub and made and made < pub - timedelta(days=OLDER_SHOW_DAYS):
+                continue
+            return k
+        if embedded or not shows:
+            return k
+    if pub and shows:
+        best, score = None, 0.0
+        for k, sh in shows.items():
+            made = _when(sh.get("created"))
+            if not made or abs((made - pub).days) > 30:
+                continue
+            sc = _sim(sh.get("name"), title)
+            if sc > score:
+                best, score = k, sc
+        if best and score >= 0.6:
+            return mixcloud_key(shows[best].get("url")) or best
+    return None
 
 
 def mixcloud_shows():
@@ -450,9 +508,11 @@ def main():
                 m["tracks"], m["endSec"] = best[0], best[1] or m["endSec"]
                 m["tracklistSource"] = "comment"
                 m["tracklistComment"] = {"author": best[3]["author"], "published": best[3]["published"]}
+        m["mixcloudKey"] = choose_mixcloud(m.pop("_mcKeys", []), m["title"], m["published"], shows)
+        m["mixcloudUrl"] = ("https://www.mixcloud.com" + urllib.parse.quote(m["mixcloudKey"])) if m["mixcloudKey"] else None
         sh = shows.get(m["mixcloudKey"].lower()) if m["mixcloudKey"] else None
+        m["mixcloud"] = sh  # null when there's no matching upload, so stale details are cleared downstream
         if sh:
-            m["mixcloud"] = sh
             if not m["endSec"] and sh.get("audioLength"):
                 m["endSec"] = sh["audioLength"]
         prev = old.get(s) or {}
