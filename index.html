@@ -626,6 +626,8 @@ function renderMix(main, slug, at) {
       b.innerHTML = '<button type="button" class="btn primary" id="playAt">' + ICON_PLAY + 'Play from ' + h(fmt(at)) + '</button>';
       $('acts').after(b);
       $('playAt').addEventListener('click', function () { jump(m, at); b.remove(); });
+      // Start the player at that spot by itself, once per address (re-renders and data refreshes don't restart it).
+      if (S._autoAt !== location.hash) { S._autoAt = location.hash; jump(m, at); }
     }
   }
   if (Player.mix === m) Player.paint();
@@ -665,7 +667,9 @@ var Player = {
     this.close(true);
     this.jumpTo = sec || null;
     if (!this.mix || this.mix !== m) Log.start(m, mode); else if (Log.cur) Log.cur.src = mode;
-    this.mix = m; this.mode = mode; this.pos = sec || 0;
+    this.mix = m; this.mode = mode; this.pos = sec || 0; this.started = false; this.blocked = false;
+    clearTimeout(this.waitT);
+    this.waitT = setTimeout(function () { if (Player.mix === m && !Player.started) { Player.blocked = true; Player.paint(); } }, 3000);
     $('player').hidden = false;
     $('pMc').hidden = !hasMc; $('pMp3').hidden = !hasMp3;
     $('pMc').setAttribute('aria-pressed', mode === 'mc'); $('pMp3').setAttribute('aria-pressed', mode === 'mp3');
@@ -677,7 +681,7 @@ var Player = {
       au.addEventListener('play', function () { if (Player.audio === au) OneTab.announce(); });
       $('pSlot').replaceChildren(au);
       if (sec) au.currentTime = sec;
-      au.play().catch(function () {});
+      au.play().catch(function () { if (Player.audio === au) { Player.blocked = true; Player.paint(); } });
       if (sec) au.addEventListener('loadedmetadata', function f() { au.removeEventListener('loadedmetadata', f); if (Math.abs(au.currentTime - sec) > 2) au.currentTime = sec; });
     } else {
       var ifr = document.createElement('iframe');
@@ -735,7 +739,12 @@ var Player = {
   tick: function (pos, playing) {
     // While a jump is settling, ignore the stray ticks from the old spot (they'd show the wrong track and count as listening).
     if (this.target != null && Math.abs(pos - this.target) > 6) { Log.lastPos = null; return; }
-    this.pos = pos; Log.tick(pos, playing == null ? this.playing : playing); this.paint();
+    this.pos = pos; Log.tick(pos, playing == null ? this.playing : playing);
+    if ((playing == null ? this.playing : playing) && !this.started) {
+      this.started = true; this.blocked = false;
+      var pa = $('playAt'); if (pa && pa.parentNode) pa.parentNode.remove();
+    }
+    this.paint();
   },
   paint: function () {
     var m = this.mix; if (!m) return;
@@ -747,7 +756,9 @@ var Player = {
     var pmb = $('pMore'); if (pmb) pmb.disabled = !likeable(t);
     var lkb = $('pLike');
     if (lkb) { var can = likeable(t), on = can && liked(t); lkb.disabled = !can; lkb.setAttribute('aria-pressed', on); lkb.title = can ? (on ? 'Liked: ' : 'Like the track playing now: ') + [t.artist, t.title].filter(Boolean).join(' – ') : 'No track is playing yet'; lkb.setAttribute('aria-label', lkb.title); lkb.querySelector('span').textContent = on ? 'Liked' : 'Like'; }
-    $('pNow').innerHTML = '<b>' + h(m.title) + '</b>' + (t ? ' · ' + h([t.artist, t.title].filter(Boolean).join(' – ')) : '') + ' · ' + fmt(this.pos);
+    var waitAt = this.pending != null ? this.pending : this.pos;
+    $('pNow').innerHTML = '<b>' + h(m.title) + '</b>' + (t ? ' · ' + h([t.artist, t.title].filter(Boolean).join(' – ')) : '') + ' · ' + fmt(this.pos) +
+      (this.blocked && !this.started ? ' · <b style="color:var(--glow)">Press play below to start at ' + h(fmt(waitAt)) + '</b>' : '');
     if (S.tab === 'mix' && S.bySlug[m.slug] && location.hash.indexOf('#m-' + m.slug) === 0) {
       document.querySelectorAll('#tl li').forEach(function (li) { li.classList.toggle('now', +li.dataset.i === cur); });
       document.querySelectorAll('#strip .seg').forEach(function (b) { b.classList.toggle('now', t && +b.dataset.sec === t.sec); });
