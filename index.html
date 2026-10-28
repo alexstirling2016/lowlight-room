@@ -106,6 +106,8 @@ h1.v{font:400 clamp(1.9rem,4.6vw,2.7rem)/1.1 var(--display);margin:0 0 .5rem;tex
 .strip{position:relative;display:flex;height:2.4rem;border-radius:.3rem;overflow:hidden;background:var(--surface-2);cursor:pointer}
 .strip .seg{display:block;position:relative;flex:none;border:0;border-right:1px solid var(--ground);padding:0;margin:0;cursor:pointer;background:color-mix(in srgb,var(--glow) calc(var(--k)*1%),var(--surface-2))}
 .strip .seg:hover,.strip .seg.now{background:var(--tape)}
+.strip .seg.gap{background:repeating-linear-gradient(135deg,var(--surface-2) 0 6px,var(--line) 6px 7px)}
+.strip .seg.gap:hover{background:repeating-linear-gradient(135deg,var(--surface-2) 0 6px,var(--muted) 6px 7px)}
 .strip .head{position:absolute;top:0;bottom:0;width:2px;background:var(--ink);pointer-events:none;left:0}
 .ticks{display:flex;justify-content:space-between;font:.72rem var(--mono);color:var(--muted);margin-top:.3rem}
 ol.tl{list-style:none;margin:1.2rem 0 0;padding:0;counter-reset:n}
@@ -565,7 +567,10 @@ function renderMix(main, slug, at) {
   var strip = '';
   if (timed.length >= 2 && end) {
     var segs = timed.map(function (t, i) { var nx = i + 1 < timed.length ? timed[i + 1].sec : end; return { t: t, w: Math.max(0, nx - t.sec) }; });
-    strip = '<div class="strip" id="strip" role="group" aria-label="Time strip: click anywhere to play from that spot">' + segs.map(function (s, i) {
+    // When the tracklist starts after 00:00, the unlisted opening gets its own blank stretch so every block sits at its real time.
+    var lead = timed[0].sec > 0 ? timed[0].sec : 0, leadAttr = ' style="width:' + (lead / end * 100).toFixed(3) + '%" data-sec="0" aria-label="00:00 before the first listed track"';
+    var leadPl = lead && !STANDALONE && playerLink(m, 0);
+    strip = '<div class="strip" id="strip" role="group" aria-label="Time strip: click anywhere to play from that spot">' + (lead ? (leadPl ? '<a class="seg gap" href="' + h(leadPl) + '" target="_blank" rel="noopener"' + leadAttr + '></a>' : '<button type="button" class="seg gap"' + leadAttr + '></button>') : '') + segs.map(function (s, i) {
       var at2 = ' style="width:' + (s.w / end * 100).toFixed(3) + '%;--k:' + (18 + (i % 2) * 14) + '" data-sec="' + s.t.sec + '" aria-label="' + h(fmt(s.t.sec) + ' ' + [s.t.artist, s.t.title].filter(Boolean).join(', ')) + '"';
       var plk = !STANDALONE && playerLink(m, s.t.sec);
       return plk ? '<a class="seg" href="' + h(plk) + '" target="_blank" rel="noopener"' + at2 + '></a>' : '<button type="button" class="seg"' + at2 + '></button>';
@@ -577,7 +582,7 @@ function renderMix(main, slug, at) {
       ((t.album || t.year || lk) ? '<span class="alb">' + h([t.album, t.year].filter(Boolean).join(', ')) + (lk ? ' <a href="' + h(lk) + '" target="_blank" rel="noopener">' + h(siteName(lk)) + '</a>' : '') + '</span>' : '') + '</div><span class="rowacts">' + moreBtn(m, i) + likeBtn(t, i) + '</span></li>';
   }).join('') + '</ol>' : '<p class="note">No tracklist yet. The blog sometimes adds one later in the comments; the daily check looks there too.</p>';
   var src = m.tracklistSource === 'mixcloud-comment' ? '<p class="note">Tracklist taken from the creator’s comment on Mixcloud' + (m.tracklistComment && m.tracklistComment.published ? ', ' + h(dateStr(m.tracklistComment.published)) : '') + '.</p>' : m.tracklistSource === 'comment' ? '<p class="note">Tracklist taken from a comment' + (m.tracklistComment && m.tracklistComment.author ? ' by ' + h(m.tracklistComment.author) : '') + (m.tracklistComment && m.tracklistComment.published ? ', ' + h(dateStr(m.tracklistComment.published)) : '') + '.</p>' : '';
-  var hint = timed.length ? (STANDALONE ? '<p class="note">Tap a time to jump there. Mixcloud sometimes refuses to skip ahead; then the MP3 takes over.</p>' : (pl ? '<p class="note">The times open the player copy of this room at that spot (this page can’t hold a player itself).</p>' : '<p class="note">The times can jump straight into the mix once the player copy is set up (see About).</p>')) : '';
+  var hint = timed.length ? (STANDALONE ? '<p class="note">Tap a time, or anywhere on the bar, to play from there. Mixcloud sometimes refuses to skip ahead; then the MP3 takes over.</p>' : (pl ? '<p class="note">The times open the player copy of this room at that spot (this page can’t hold a player itself).</p>' : '<p class="note">The times can jump straight into the mix once the player copy is set up (see About).</p>')) : '';
   var links = (m.links || []).filter(function (l) { return okUrl(l.url); });
   var ai = m.ai && m.ai.summary ? '<section class="sect"><h2 class="spaced">I n &nbsp; s h o r t</h2><div class="mood"><p style="margin:0">' + h(m.ai.summary) + '</p>' + ([m.ai.primaryMood].concat(m.ai.moodTags || []).filter(Boolean).length ? '<div class="tags">' + [m.ai.primaryMood].concat(m.ai.moodTags || []).filter(Boolean).map(function (x) { return '<span>' + h(x) + '</span>'; }).join('') + '</div>' : '') + '<p class="note">Claude’s summary of the post, used by Ask to search. It hasn’t heard the mix.</p></div></section>' : '';
 
@@ -615,7 +620,7 @@ function renderMix(main, slug, at) {
     stEl.addEventListener('mousemove', function (e) {
       var s3 = stripSec(m, e); if (s3 == null) return;
       var t3 = null; m.tracks.forEach(function (t) { if (t.sec != null && t.sec <= s3) t3 = t; });
-      showTip(fmt(s3) + (t3 ? '  ·  ' + [t3.artist, t3.title].filter(Boolean).join(' – ') : ''), e);
+      showTip(fmt(s3) + (t3 ? '  ·  ' + [t3.artist, t3.title].filter(Boolean).join(' – ') : '  ·  before the first listed track'), e);
     });
     stEl.addEventListener('mouseleave', hideTip);
   }
