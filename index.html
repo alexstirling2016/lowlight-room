@@ -231,6 +231,9 @@ table.caps td:nth-child(3),table.caps td:nth-child(4){font-variant-numeric:tabul
 .scroll{overflow-x:auto}
 .linkbtn{background:none;border:0;padding:0;color:var(--glow);cursor:pointer;text-decoration:underline}
 .tip{position:fixed;z-index:40;pointer-events:none;background:var(--surface-2);color:var(--ink);border:1px solid var(--line);border-radius:.35rem;padding:.3rem .6rem;font-size:.82rem;max-width:18rem}
+.gh{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.8rem}
+.gh a{font-size:.85rem;border:1px solid var(--line);border-radius:999px;padding:.25rem .8rem;text-decoration:none;color:var(--muted)}
+.gh a:hover{color:var(--ink);border-color:var(--glow)}
 footer{margin-top:4rem;padding-top:1rem;border-top:1px solid var(--line);font-size:.82rem;color:var(--muted);max-width:64ch}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 </style>
@@ -248,7 +251,7 @@ footer{margin-top:4rem;padding-top:1rem;border-top:1px solid var(--line);font-si
     </nav>
   </header>
   <main id="main"></main>
-  <footer>Mixes, words and covers belong to <a href="https://lowlightmixes.blogspot.com" target="_blank" rel="noopener">Low Light Mixes</a>; the music belongs to its artists. This room only indexes what the blog publishes and links back to it, Mixcloud and the artists' pages.</footer>
+  <footer>Mixes, words and covers belong to <a href="https://lowlightmixes.blogspot.com" target="_blank" rel="noopener">Low Light Mixes</a>; the music belongs to its artists. This room only indexes what the blog publishes and links back to it, Mixcloud and the artists' pages.<span id="ghLinks"></span></footer>
 </div>
 <div class="player" id="player" hidden>
   <div class="in">
@@ -306,7 +309,7 @@ function mixEnd(m) {
 }
 
 // ------------------------------------------------------------ memory (heard / favourite)
-function mark(slug) { var mk = S.memory.marks[slug] || {}; if (STANDALONE && !mk.heard) { var m = S.bySlug[slug]; if (m && listenedFrac(m) >= 0.6) return Object.assign({}, mk, { heard: true, auto: true }); } return mk; }
+function mark(slug) { var mk = S.memory.marks[slug] || {}; if (!mk.heard) { var m = S.bySlug[slug]; if (m && listenedFrac(m) >= 0.6) return Object.assign({}, mk, { heard: true, auto: true }); } return mk; }
 var memBusy = false, memAgain = false;
 function saveMemory() {
   lsSet('lowlight-memory', S.memory);
@@ -392,6 +395,18 @@ function pagesUrl() {
   var p = r.split('/');
   return 'https://' + p[0].toLowerCase() + '.github.io/' + p[1] + '/';
 }
+// GitHub shortcuts: straight to the upload page, the player file and the Actions tab of the room's repository.
+function ghRepo() {
+  var r = S.config && S.config.repo;
+  if (!r && /\.github\.io$/i.test(location.hostname)) { var seg = location.pathname.split('/').filter(Boolean)[0]; if (seg) r = location.hostname.split('.')[0] + '/' + seg; }
+  return r && /^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/.test(r) ? r : null;
+}
+function ghLinksHtml() {
+  var r = ghRepo(), lr = S.config && S.config.listeningRepo, b = 'https://github.com/';
+  if (!r) return '';
+  return '<div class="gh"><a href="' + h(b + r + '/upload/main') + '" target="_blank" rel="noopener">Upload files to GitHub ↗</a><a href="' + h(b + r + '/edit/main/index.html') + '" target="_blank" rel="noopener">Edit the player page ↗</a><a href="' + h(b + r + '/actions') + '" target="_blank" rel="noopener">Daily check (Actions) ↗</a><a href="' + h(b + r) + '" target="_blank" rel="noopener">' + h(r) + ' ↗</a>' + (lr ? '<a href="' + h(b + lr) + '" target="_blank" rel="noopener">' + h(lr) + ' ↗</a>' : '') + '</div>';
+}
+function paintGh() { var el = $('ghLinks'); if (el) el.innerHTML = ghLinksHtml(); }
 function mixHash(m, sec) { return '#m-' + m.slug + (sec != null ? '--at-' + Math.round(sec) : ''); }
 function playerLink(m, sec) { var p = pagesUrl(); return p ? p + mixHash(m, sec) : null; }
 
@@ -416,6 +431,7 @@ function route() {
   else if (tab === 'listening') renderListening(main);
   else renderMixes(main);
   S.tab = tab;
+  paintGh();
 }
 window.addEventListener('hashchange', function () { route(); window.scrollTo(0, 0); });
 
@@ -522,7 +538,7 @@ function renderMix(main, slug, at) {
   acts.push('<button type="button" class="btn" data-mark="heard" aria-pressed="' + !!mk.heard + '">Heard it</button>');
   acts.push('<button type="button" class="btn" data-mark="fav" aria-pressed="' + !!mk.fav + '">Favourite</button>');
 
-  var facts = [dateStr(m.published), end && m.tracks.length ? dur(end) : (m.mixcloud && m.mixcloud.audioLength ? dur(m.mixcloud.audioLength) : ''), m.tracks.length ? m.tracks.length + ' tracks' : '', m.mixcloud && m.mixcloud.plays ? m.mixcloud.plays.toLocaleString() + ' plays on Mixcloud' : '', STANDALONE && listenStats().by[m.slug] ? 'you’ve listened ' + Math.round(listenStats().by[m.slug].sec / 60) + (m._end ? ' of ' + Math.round(m._end / 60) : '') + ' min' : ''].filter(Boolean);
+  var facts = [dateStr(m.published), end && m.tracks.length ? dur(end) : (m.mixcloud && m.mixcloud.audioLength ? dur(m.mixcloud.audioLength) : ''), m.tracks.length ? m.tracks.length + ' tracks' : '', m.mixcloud && m.mixcloud.plays ? m.mixcloud.plays.toLocaleString() + ' plays on Mixcloud' : '', listenStats().by[m.slug] ? 'you’ve listened ' + Math.round(listenStats().by[m.slug].sec / 60) + (m._end ? ' of ' + Math.round(m._end / 60) : '') + ' min' : ''].filter(Boolean);
   var strip = '';
   if (timed.length >= 2 && end) {
     var segs = timed.map(function (t, i) { var nx = i + 1 < timed.length ? timed[i + 1].sec : end; return { t: t, w: Math.max(0, nx - t.sec) }; });
@@ -891,12 +907,7 @@ function rowChart(items, opts) {
 function weekStart(d) { var x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
 
 function renderListening(main) {
-  if (!STANDALONE) {
-    var pu = pagesUrl();
-    main.innerHTML = '<section class="view"><h1 class="v">Listening</h1><p class="lede">Your listening history and its charts live in the player copy of this room, because that’s where the mixes play. It saves to a private GitHub repository only you can read, so this page never needs your GitHub key.</p>' + (pu ? '<p><a class="btn primary" href="' + h(pu + '#listening') + '" target="_blank" rel="noopener">Open your listening in the player copy</a></p>' : '<p class="note">Set up the player copy first (see About).</p>') + '</section>';
-    return;
-  }
-  main.innerHTML = '<section class="view"><h1 class="v">Listening</h1><p class="lede">What you’ve played here, how long, and how far in. Counted only while a mix is actually playing; sessions under 30 seconds are left out.</p><div id="lsBody"></div></section>';
+  main.innerHTML = '<section class="view"><h1 class="v">Listening</h1><p class="lede">' + (STANDALONE ? 'What you’ve played here, how long, and how far in.' : 'What you’ve played in the player copy, how long, and how far in, combined here by the daily task.') + ' Counted only while a mix is actually playing; sessions under 30 seconds are left out.</p><div id="lsBody"></div></section>';
   S.lsSel = S.lsSel || null;
   drawListening();
   if (Log.cfg && !S._pulled) { S._pulled = true; Log.pull(); }
@@ -904,7 +915,7 @@ function renderListening(main) {
 function drawListening() {
   var box = $('lsBody'); if (!box) return;
   var st = listenStats(), ss = st.sessions, cfg = Log.cfg;
-  var conn = '<div class="panel"><h3>Where it’s saved</h3>' + (cfg ? '<p class="state ' + (Log.err ? 'warn' : 'ok') + '"><i></i>' + (Log.err ? h(Log.err) : 'Saving to your private repository <code>' + h(cfg.repo) + '</code>' + (Log.lastSync ? ', last synced ' + ago(Log.lastSync) : '') + (Log.data.pending.length ? ' · ' + Log.data.pending.length + ' waiting to upload' : '') + '.') + '</p><div class="inrow"><button type="button" class="btn" id="lsSync">Sync now</button><button type="button" class="btn" id="lsOff">Disconnect this browser</button></div>'
+  var conn = !STANDALONE ? roomSyncPanel() : '<div class="panel"><h3>Where it’s saved</h3>' + (cfg ? '<p class="state ' + (Log.err ? 'warn' : 'ok') + '"><i></i>' + (Log.err ? h(Log.err) : 'Saving to your private repository <code>' + h(cfg.repo) + '</code>' + (Log.lastSync ? ', last synced ' + ago(Log.lastSync) : '') + (Log.data.pending.length ? ' · ' + Log.data.pending.length + ' waiting to upload' : '') + '.') + '</p><div class="inrow"><button type="button" class="btn" id="lsSync">Sync now</button><button type="button" class="btn" id="lsOff">Disconnect this browser</button></div>'
     : '<p class="state"><i></i>Saved in this browser only. Connect a private GitHub repository to keep it safe and see it on every device.</p>' +
       '<details class="desc"><summary>How to connect (5 minutes, once per device)</summary><ol class="steps"><li>On GitHub, create a new <b>private</b> repository, e.g. <code>lowlight-listening</code>, and tick “Add a README file”.</li><li>Go to <b>Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token</b>. Repository access: <b>Only select repositories</b> → <code>lowlight-listening</code>. Permissions → Repository → <b>Contents: Read and write</b>. Generate and copy it.</li><li>Paste both below and press Connect. The key stays in this browser only; it can open nothing but that one repository.</li></ol></details>' +
       '<form class="inrow" id="lsF"><label class="sr" for="lsRepo">Private repository (owner/name)</label><input id="lsRepo" placeholder="alexstirling2016/lowlight-listening" autocomplete="off" spellcheck="false"><label class="sr" for="lsTok">GitHub key</label><input id="lsTok" type="password" placeholder="github_pat_…" autocomplete="off"><button class="btn primary" type="submit">Connect</button></form><p class="msg" id="lsMsg" aria-live="polite"></p>') + '</div>';
@@ -957,7 +968,23 @@ function drawListening() {
     '<div class="scroll"><table class="caps"><thead><tr><th>When</th><th>Mix</th><th>Listened</th><th>Reached</th></tr></thead><tbody>' + list.slice(0, 200).map(function (s) { var m = S.bySlug[s.slug]; return '<tr><td>' + h(new Date(s.start).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) + '</td><td>' + (m ? '<a href="' + h(mixHash(m)) + '">' + h(m.title) + '</a>' : h(s.title || s.slug)) + '</td><td>' + Math.round(s.sec / 60) + ' min</td><td>' + h(fmt(s.maxPos)) + (m && m._end ? ' of ' + h(fmt(m._end)) : '') + '</td></tr>'; }).join('') + '</tbody></table></div></section>';
   bindLs();
 }
+function roomSyncPanel() {
+  var sy = S.sync, pu = pagesUrl(), lr = S.config && S.config.listeningRepo;
+  var st = sy && sy.at ? '<p class="state ' + (sy.problem ? 'warn' : 'ok') + '"><i></i><span>' + (sy.problem ? h(sy.problem) : 'Combined from your private repository <code>' + h(sy.listeningRepo || lr || '') + '</code> ' + ago(sy.at) + ': ' + (sy.sessions || 0) + ' sessions, ' + (sy.likes || 0) + ' liked tracks.') + '</span></p>'
+    : '<p class="state"><i></i><span>' + (lr ? 'Waiting for the daily task to combine <code>' + h(lr) + '</code> for the first time.' : 'Not combined yet: the daily task needs to know your private listening repository.') + '</span></p>';
+  var form = S.canEdit && S.db ? '<form class="inrow" id="lrF"><label class="sr" for="lrIn">Private listening repository (owner/name)</label><input id="lrIn" placeholder="your-name/lowlight-listening" value="' + h(lr || '') + '" autocomplete="off" spellcheck="false"><button class="btn" type="submit">Save</button></form><p class="msg" id="lrMsg" aria-live="polite"></p>' : '';
+  return '<div class="panel"><h3>Where it comes from</h3>' + st + '<p class="note">Mixes play in the player copy, which saves to your private repository. Each day the Claude task copies that history in here and merges liked tracks both ways, so the room and the player end up with the same likes.</p>' + form + (pu ? '<div class="inrow"><a class="btn" href="' + h(pu + '#listening') + '" target="_blank" rel="noopener">Open the player copy</a></div>' : '') + '</div>';
+}
 function bindLs() {
+  var lrF = $('lrF');
+  if (lrF) lrF.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var v = $('lrIn').value.trim().replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/, '').replace(/\/+$/, ''), msg = $('lrMsg');
+    if (!/^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/.test(v)) { msg.className = 'msg err'; msg.textContent = 'Write it as owner/name.'; return; }
+    var body = Object.assign({}, S.config, { listeningRepo: v });
+    S.db.doc('meta/config').set(body).then(function () { S.config = body; msg.className = 'msg good'; msg.textContent = 'Saved. The next daily run combines it.'; })
+      .catch(function () { msg.className = 'msg err'; msg.textContent = 'Could not save.'; });
+  });
   var box = $('lsBody'); if (!box) return;
   var f = $('lsF');
   if (f) f.addEventListener('submit', async function (e) {
@@ -988,7 +1015,7 @@ function bindLs() {
       if (k[0] === 'l') { location.hash = '#label-' + k.slice(1).replace(/\s+/g, '-'); return; }
       if (k[0] === 'a') { S.lsArtist = S.lsArtist === k.slice(1) ? null : k.slice(1); drawListening(); var pa = $('lsArtist'); if (pa) pa.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); return; }
       if (k[0] === 'x') return;
-      if (k[0] === 't') { var tt = trackStats().tracks[k.slice(1)], tm = tt && S.bySlug[tt.slug]; if (tm) { location.hash = mixHash(tm); setTimeout(function () { jump(tm, tt.at); }, 60); } return; }
+      if (k[0] === 't') { var tt = trackStats().tracks[k.slice(1)], tm = tt && S.bySlug[tt.slug]; if (tm && !STANDALONE) { var tpl = playerLink(tm, tt.at); if (tpl) window.open(tpl, '_blank', 'noopener'); else location.hash = mixHash(tm, tt.at); return; } if (tm) { location.hash = mixHash(tm); setTimeout(function () { jump(tm, tt.at); }, 60); } return; }
       S.lsSel = S.lsSel === k ? null : k; drawListening();
       var l = $('lsList'); if (l && S.lsSel) l.scrollIntoView({ block: 'start', behavior: 'smooth' });
     }
@@ -1066,7 +1093,7 @@ function localRank(text) {
     return { m: m, sc: sc };
   }).filter(function (r) { return r.sc > 0; }).sort(function (a, b) { return b.sc - a.sc; });
 }
-var EXAMPLES = ['Slow, spacey Berlin School for a late drive', 'Something autumnal and folky for a grey Sunday', 'Dark, cinematic drones, a bit sci-fi', 'Gentle piano and modern classical for reading', 'A long ambient mix to fall asleep to'];
+var EXAMPLES = ['More like the tracks I’ve liked', 'Slow, spacey Berlin School for a late drive', 'Something autumnal and folky for a grey Sunday', 'Dark, cinematic drones, a bit sci-fi', 'Gentle piano and modern classical for reading', 'A long ambient mix to fall asleep to'];
 function renderAsk(main) {
   if (!S.mixes.length) { main.innerHTML = '<section class="view">' + emptyState() + '</section>'; return; }
   main.innerHTML = '<section class="view"><h1 class="v">What should tonight sound like?</h1><p class="lede">Describe a mood, a setting or a sound.' + (!STANDALONE ? ' Claude scans a summary of every mix with its labels and Mixcloud tags, then reads the full descriptions of the closest ones and tells you why it chose each.' : ' The room matches your words against every mix’s description, title, labels and tags.') + '</p>' +
@@ -1081,14 +1108,15 @@ function renderAsk(main) {
 var ROOM_URL = 'https://claude.ai/artifact/YD93cCn7fCKQG9Kc1SLQ4a';
 function askSlug(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 180); }
 var askCtl = null;
-var ASK_RULES = 'HOW TO JUDGE (the listener\'s own rules): The blog author\'s description of each mix, together with its title, is the main evidence of its mood, setting and sound. Next come the author\'s own blog labels and Mixcloud tags, which are good indicators. Mood readings, where present, were written by Claude from the description and are secondary. Use the tracklist only for songs or artists you actually know, and say so; never infer mood from a track title alone, because song titles can mislead (when a mix is built around words in its track titles, the description says so). Never invent a sound or fact the data does not support. Do not favour or avoid mixes the listener has marked as heard; use that mark only if the listener asks for something new to them, or for something they already know.';
+var ASK_RULES = 'HOW TO JUDGE (the listener\'s own rules): The blog author\'s description of each mix, together with its title, is the main evidence of its mood, setting and sound. Next come the author\'s own blog labels and Mixcloud tags, which are good indicators. Mood readings, where present, were written by Claude from the description and are secondary. Use the tracklist only for songs or artists you actually know, and say so; never infer mood from a track title alone, because song titles can mislead (when a mix is built around words in its track titles, the description says so). Never invent a sound or fact the data does not support. Do not favour or avoid mixes the listener has marked as heard; use that mark only if the listener asks for something new to them, or for something they already know. Liked tracks (lk) and minutes listened (min) are the listener\'s own history: use them only when the request is about their taste, their favourites, or what they have or haven\'t played.';
 function catLine(m) {
-  return { n: m._i, t: m.title, y: String(m.published || '').slice(0, 4), l: m.labels, mc: tagsOf(m).length ? tagsOf(m) : undefined, d: (m.ai && m.ai.summary) ? m.ai.summary : (m.intro || '').replace(/\s+/g, ' ').slice(0, 160), h: mark(m.slug).heard ? 1 : undefined };
+  return { n: m._i, t: m.title, y: String(m.published || '').slice(0, 4), l: m.labels, mc: tagsOf(m).length ? tagsOf(m) : undefined, d: (m.ai && m.ai.summary) ? m.ai.summary : (m.intro || '').replace(/\s+/g, ' ').slice(0, 160), h: mark(m.slug).heard ? 1 : undefined, lk: likesIn(m).length || undefined, min: listenStats().by[m.slug] ? Math.round(listenStats().by[m.slug].sec / 60) : undefined };
 }
 function fullCard(m) {
   var arts = []; m.tracks.forEach(function (t) { if (t.artist && arts.indexOf(t.artist) < 0) arts.push(t.artist); });
-  return { slug: m.slug, title: m.title, year: String(m.published || '').slice(0, 4), length: dur(m._end), labels: m.labels, mixcloudTags: tagsOf(m), description: (m.intro || '').slice(0, 6000), mood: m.ai ? { primary: m.ai.primaryMood, tags: m.ai.moodTags, words: m.ai.descriptors } : undefined, tracks: m.tracks.slice(0, 30).map(function (t) { return [t.artist, t.title].filter(Boolean).join(' - '); }), heard: mark(m.slug).heard || undefined };
+  return { slug: m.slug, title: m.title, year: String(m.published || '').slice(0, 4), length: dur(m._end), labels: m.labels, mixcloudTags: tagsOf(m), description: (m.intro || '').slice(0, 6000), mood: m.ai ? { primary: m.ai.primaryMood, tags: m.ai.moodTags, words: m.ai.descriptors } : undefined, tracks: m.tracks.slice(0, 30).map(function (t) { return [t.artist, t.title].filter(Boolean).join(' - '); }), heard: mark(m.slug).heard || undefined, likedTracks: likesIn(m).length ? likesIn(m) : undefined, minutesListened: listenStats().by[m.slug] ? Math.round(listenStats().by[m.slug].sec / 60) : undefined };
 }
+function likesIn(m) { return m.tracks.filter(function (t) { return likeable(t) && liked(t); }).map(function (t) { return [t.artist, t.title].filter(Boolean).join(' - '); }); }
 function fitCat(lines, maxBytes) {
   var s = JSON.stringify(lines);
   while (s.length * 1.15 > maxBytes && lines[0] && lines[0].d.length > 20) { lines.forEach(function (x) { x.d = x.d.slice(0, Math.floor(x.d.length * 0.7)); }); s = JSON.stringify(lines); }
@@ -1116,7 +1144,7 @@ async function runAsk(text) {
     try {
       var cat = fitCat(S.mixes.map(catLine), Math.min(cap, 140000) - 3000);
       var p1 = 'You help a listener choose from the Low Light Mixes archive (' + S.mixes.length + ' long ambient, electronic, folk, prog and modern-classical mixes from a blog).\n\nLISTENER ASKS: ' + JSON.stringify(text) + '\n\n' + ASK_RULES +
-        '\n\nARCHIVE (one object per mix; n = number, t = title, y = year, l = blog labels, mc = Mixcloud tags, d = a short summary of the blog description, h = marked heard):\n' + cat +
+        '\n\nARCHIVE (one object per mix; n = number, t = title, y = year, l = blog labels, mc = Mixcloud tags, d = a short summary of the blog description, h = marked heard, lk = how many of its tracks the listener liked, min = minutes the listener has played it):\n' + cat +
         '\n\nFirst pass. Return the numbers (n) of the 20 mixes most worth reading in full for this request, best first, casting a slightly wide net. Reply only as JSON: {"n": [numbers]}';
       var r1 = await askClaude(p1, { modelTier: 'quick' }, ctl);
       ids = (r1 && Array.isArray(r1.n) ? r1.n : []).map(function (i) { var m = S.mixes[+i]; return m ? m.slug : null; }).filter(Boolean);
@@ -1202,7 +1230,7 @@ function renderYours(main) {
   var likedHtml = lk.length ? '<ol class="tl liked" id="likedList">' + lk.map(function (x) {
     var m = S.bySlug[x.slug], t = { artist: x.artist, title: x.title, album: x.album, sec: x.sec };
     return '<li>' + (m ? tsLink(m, t) : '<span class="ts">·</span>') + '<div><span class="who">' + h(x.artist || '') + '</span>' + (x.artist ? ' – ' : '') + '<span class="what">' + h(x.title || '') + '</span><span class="alb">' + (m ? 'in <a href="' + h(mixHash(m)) + '">' + h(m.title) + '</a>' : '') + (x.album ? (m ? ' · ' : '') + h(x.album) : '') + '</span></div>' + likeBtn(t) + '</li>';
-  }).join('') + '</ol>' : '<p class="lede">' + (STANDALONE ? 'Tap the heart next to a track, or the Like button in the player while it plays.' : 'Tap the heart next to a track in any tracklist. While a mix plays in the player copy, its Like button saves the track playing at that moment.') + '</p>';
+  }).join('') + '</ol>' : '<p class="lede">' + (STANDALONE ? 'Tap the heart next to a track, or the Like button in the player while it plays.' : 'Tap the heart next to a track in any tracklist. Likes from the player copy arrive here with the daily task.') + '</p>';
   function grid(list, none) { return list.length ? '<div class="grid">' + list.map(function (m) { return cardHtml(m); }).join('') + '</div>' : '<p class="lede">' + none + '</p>'; }
   main.innerHTML = '<section class="view"><h1 class="v">Yours</h1><p class="lede">' + (STANDALONE ? 'Kept in this browser.' : (S.uid ? 'Private to you: nobody else who opens this room sees these.' : 'Kept in this browser for now.')) + '</p>' +
     '<section class="sect" style="margin-top:1rem"><h2 class="spaced">L i k e d &nbsp; t r a c k s</h2>' + likedHtml + (STANDALONE && lk.length ? '<p class="note">' + (Log.cfg ? 'Also saved to your private repository, so they follow you to other devices.' : 'Connect a private repository on the Listening page to keep these on every device.') + '</p>' : '') + '</section>' +
@@ -1238,6 +1266,7 @@ function renderAbout(main) {
     html += '<div class="panel"><h3>Repository</h3>' + (repo ? '<p>Reading <a href="https://github.com/' + h(repo) + '" target="_blank" rel="noopener"><code>' + h(repo) + '</code></a>' + (pu ? ' · player copy at <a href="' + h(pu) + '" target="_blank" rel="noopener">' + h(pu.replace(/^https:\/\//, '')) + '</a>' : '') + '</p>' : '<p>No repository set yet. The daily copy waits until it has one.</p>') +
       (S.canEdit && S.db ? '<form class="inrow" id="repoF"><label class="sr" for="repoIn">GitHub repository (owner/name)</label><input id="repoIn" placeholder="your-name/lowlight-room" value="' + h(repo) + '" autocomplete="off" spellcheck="false"><button class="btn primary" type="submit">Save</button></form><p class="msg" id="repoMsg" aria-live="polite"></p>' : '<p class="note">Only editors of this room can change it.</p>') + '</div>';
   }
+  if (ghRepo()) html += '<div class="panel"><h3>On GitHub</h3><p>Shortcuts for when Claude hands you a file to put on GitHub: <b>Upload files</b> opens the upload page of <code>' + h(ghRepo()) + '</code>; drop the file in and press <b>Commit changes</b>.</p>' + ghLinksHtml() + '</div>';
   html += '<div class="panel"><h3>Setting it up (once, about ten minutes)</h3><ol class="steps">' +
     '<li>On GitHub, create a new <b>public</b> repository, for example <code>lowlight-room</code>.</li>' +
     '<li>Choose <b>Add file → Upload files</b> and drop in everything from the <code>lowlight-room</code> folder you were given (<code>index.html</code>, <code>README.md</code>, the <code>scripts</code> folder). Commit.</li>' +
@@ -1289,6 +1318,17 @@ if (STANDALONE) {
     if (S.uid) db.doc('data/users/' + S.uid + '/memory').get().then(function (s) {
       if (s.exists) { var d = s.data() || {}; S.memory = { marks: Object.assign({}, S.memory.marks, d.marks || {}), recent: d.recent || S.memory.recent || [], tracks: mergeTracks(S.memory.tracks, d.tracks) }; lsSet('lowlight-memory', S.memory); if (S.tab === 'yours') route(); }
     }).catch(function () {});
+    if (S.uid) db.collection('data/users/' + S.uid).onSnapshot(function (snap) {
+      var ses = {}, sy = null, mem = null;
+      snap.docs.forEach(function (d) {
+        if (/^listen-\d{4}-\d{2}$/.test(d.id)) { var x = d.data() || {}; Object.assign(ses, x.sessions || {}); }
+        else if (d.id === 'sync') sy = d.data();
+        else if (d.id === 'memory') mem = d.data();
+      });
+      Log.data.sessions = ses; S.sync = sy; S._listen = null; S._tracks = null;
+      if (mem && mem.tracks) S.memory.tracks = mergeTracks(S.memory.tracks, mem.tracks);
+      if (S.tab === 'listening') drawListening(); else if (S.tab === 'yours' || S.tab === 'mix') route();
+    }, function () {});
     S.sample = await S.sampleP;
   })();
 }
