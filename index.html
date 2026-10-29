@@ -134,6 +134,19 @@ ol.tl.liked .ts{font-size:.85rem}
 .alb{display:block;font-size:.85rem;color:var(--muted)}
 .alb a{font-size:.82rem}
 .sect{margin-top:2.6rem}
+ol.albums{list-style:none;margin:0;padding:0}
+ol.albums li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.3rem 1rem;padding:.55rem .2rem;border-bottom:1px solid var(--line);align-items:center}
+ol.albums li.now{background:linear-gradient(90deg,var(--haze),transparent)}
+ol.albums li.now .who::before{content:"";display:inline-block;width:.45rem;height:.45rem;border-radius:50%;background:var(--tape);margin-right:.45rem;vertical-align:.12em}
+ol.albums .yr{color:var(--muted);font-size:.85rem;margin-left:.3rem}
+ol.albums .acts{display:flex;gap:.4rem;flex-wrap:wrap;justify-content:flex-end}
+ol.albums .acts a,ol.albums .acts button{font-size:.8rem;border:1px solid var(--line);border-radius:999px;padding:.12rem .7rem;text-decoration:none;color:var(--muted);background:none;cursor:pointer;white-space:nowrap}
+ol.albums .acts a:hover,ol.albums .acts button:hover{color:var(--ink);border-color:var(--glow)}
+ol.albums .acts .pl{color:var(--glow-ink);background:var(--glow);border-color:var(--glow);font-weight:700}
+ol.albums .acts .pl:hover{color:var(--glow-ink);filter:brightness(1.07)}
+.intro a.alink{color:inherit;text-decoration-color:var(--glow)}
+.intro button.bcp{background:none;border:0;padding:0 .2rem;color:var(--glow);cursor:pointer;font-size:.85em}
+.player iframe.bc{height:120px}
 .links{columns:2 16rem;column-gap:2rem;margin:0;padding:0;list-style:none;font-size:.88rem}
 .links li{break-inside:avoid;margin:0 0 .35rem;overflow-wrap:anywhere}
 .mood{border:1px dashed var(--tape);border-radius:.45rem;padding:1rem 1.1rem;max-width:64ch}
@@ -312,7 +325,8 @@ function setMixes(list) {
 }
 function squashHay(m) {
   return [m.title, m.labels.join(' '), m.intro, (m.ai && (m.ai.primaryMood + ' ' + (m.ai.moodTags || []).join(' ') + ' ' + (m.ai.descriptors || []).join(' '))) || '',
-    m.tracks.map(function (t) { return [t.artist, t.title, t.album].join(' '); }).join(' ')].join(' ').toLowerCase();
+    m.tracks.map(function (t) { return [t.artist, t.title, t.album].join(' '); }).join(' '),
+    (m.albums || []).map(function (a) { return a.artist + ' ' + a.album; }).join(' ')].join(' ').toLowerCase();
 }
 function mixEnd(m) {
   var last = m.tracks.length ? m.tracks[m.tracks.length - 1].sec : null;
@@ -428,9 +442,10 @@ function playerLink(m, sec) { var p = pagesUrl(); return p ? p + '?v=' + Math.fl
 function route() {
   var hs = decodeURIComponent((location.hash || '').slice(1));
   var tab = 'mixes', slug = null, at = null;
+  S._albumIdx = null;
   if (hs.indexOf('m-') === 0) {
-    var rest = hs.slice(2), mt = rest.match(/^(.*)--at-(\d+)$/);
-    if (mt) { slug = mt[1]; at = +mt[2]; } else slug = rest;
+    var rest = hs.slice(2), mt = rest.match(/^(.*)--at-(\d+)$/), ma = rest.match(/^(.*)--album-(\d+)$/);
+    if (mt) { slug = mt[1]; at = +mt[2]; } else if (ma) { slug = ma[1]; S._albumIdx = +ma[2]; } else slug = rest;
     tab = 'mix';
   } else if (/^(mixes|artists|ask|yours|listening|about)$/.test(hs)) tab = hs;
   else if (hs.indexOf('ask-') === 0) { tab = 'ask'; var qq = hs.slice(4).replace(/-/g, ' ').trim(); if (qq && qq !== S.ask.text) { S.ask.text = qq; S._autoAsk = qq; } }
@@ -541,6 +556,38 @@ function linkFor(t, links) {
   }
   return null;
 }
+// ------------------------------------------------------------ albums named in a post (best-of lists)
+function bcSearch(a) { return 'https://bandcamp.com/search?q=' + encodeURIComponent(a.artist + ' ' + a.album) + '&item_type=a'; }
+function albumPlayerLink(m, i) { var p = pagesUrl(); return p ? p + '?v=' + Math.floor(Date.now() / 60000).toString(36) + '#m-' + m.slug + '--album-' + i : null; }
+function albumActs(m, a, i) {
+  var out = [], u = okUrl(a.url), nm = h(a.artist + ' – ' + a.album);
+  if (a.bc && a.bc.id) {
+    if (STANDALONE) out.push('<button type="button" class="pl" data-bcp="' + i + '" aria-label="Play ' + nm + '">▶ Play</button>');
+    else { var pl = albumPlayerLink(m, i); if (pl) out.push('<a class="pl" href="' + h(pl) + '" target="_blank" rel="noopener" aria-label="Play ' + nm + ' in the player copy">▶ Play</a>'); }
+  }
+  if (u) out.push('<a href="' + h(u) + '" target="_blank" rel="noopener">' + (a.kind === 'bandcamp-artist' ? 'Artist on Bandcamp' : /bandcamp\.com/i.test(u) ? 'Bandcamp' : h(siteName(u))) + ' ↗</a>');
+  else out.push('<a href="' + h(bcSearch(a)) + '" target="_blank" rel="noopener">Search Bandcamp ↗</a>');
+  return out.join('');
+}
+function albumsSection(m) {
+  var al = m.albums || []; if (!al.length) return '';
+  var linked = al.filter(function (a) { return okUrl(a.url); }).length, playable = al.filter(function (a) { return a.bc && a.bc.id; }).length;
+  return '<section class="sect" id="albums"><h2 class="spaced">M u s i c &nbsp; i n &nbsp; t h i s &nbsp; p o s t</h2><p class="note">' + al.length + ' named in the post · ' + linked + ' with a page found' + (playable ? ' · ' + playable + ' playable' : '') + '. ' +
+    (playable ? (STANDALONE ? '▶ plays it here with Bandcamp’s own player. ' : '▶ opens it in the player copy, which plays it with Bandcamp’s own player. ') : '') +
+    'Pages come from the post itself or the MusicBrainz music database; “Search Bandcamp” where none was found yet (the daily check looks a batch up each day).</p><ol class="albums">' +
+    al.map(function (a, i) { return '<li data-ai="' + i + '"><div><span class="who">' + h(a.artist) + '</span> – <span class="what">' + h(a.album) + '</span>' + (a.year ? '<span class="yr">' + a.year + '</span>' : '') + '</div><span class="acts">' + albumActs(m, a, i) + '</span></li>'; }).join('') + '</ol></section>';
+}
+// The post's text with each album line linked to its page (and a ▶ where Bandcamp's player is available).
+function introHtml(m) {
+  var al = m.albums || []; if (!al.length) return h(m.intro);
+  var by = {}; al.forEach(function (a, i) { if (a.line) by[a.line] = i; });
+  return String(m.intro).split('\n').map(function (l) {
+    var i = by[l.trim()]; if (i == null) return h(l);
+    var a = al[i], u = okUrl(a.url) || bcSearch(a);
+    var pb = a.bc && a.bc.id ? (STANDALONE ? ' <button type="button" class="bcp" data-bcp="' + i + '" aria-label="Play ' + h(a.artist + ' – ' + a.album) + '">▶</button>' : (albumPlayerLink(m, i) ? ' <a class="alink" href="' + h(albumPlayerLink(m, i)) + '" target="_blank" rel="noopener" aria-label="Play in the player copy">▶</a>' : '')) : '';
+    return '<a class="alink" href="' + h(u) + '" target="_blank" rel="noopener" title="' + (okUrl(a.url) ? 'Open its page' : 'Search Bandcamp') + '">' + h(l) + '</a>' + pb;
+  }).join('\n');
+}
 function siteName(u) { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return u; } }
 var ICON_PLAY = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>';
 function renderMix(main, slug, at) {
@@ -590,8 +637,8 @@ function renderMix(main, slug, at) {
     '<div class="mixhead">' + coverHtml(m, true) + '<div><p class="spaced">' + h((m.published || '').slice(0, 4).split('').join(' ')) + '</p><h1>' + h(m.title) + '</h1><div class="facts">' + facts.map(function (f) { return '<span>' + h(f) + '</span>'; }).join('') + '</div>' +
     (m.labels.length ? '<div class="labels">' + m.labels.map(function (l) { return '<a href="#label-' + h(l.replace(/\s+/g, '-')) + '">' + h(l) + '</a>'; }).join('') + '</div>' : '') +
     '<div class="actions" id="acts">' + acts.join('') + '</div></div></div>' +
-    ai + (m.intro ? '<p class="intro">' + h(m.intro) + '</p>' : '') +
-    '<section class="cue"><h2 class="spaced">T r a c k l i s t</h2>' + strip + hint + src + tl + '</section>' +
+    ai + (m.intro ? '<p class="intro">' + introHtml(m) + '</p>' : '') +
+    (m.albums && m.albums.length && !timed.length ? albumsSection(m) : '<section class="cue"><h2 class="spaced">T r a c k l i s t</h2>' + strip + hint + src + tl + '</section>' + albumsSection(m)) +
     (links.length ? '<section class="sect"><h2 class="spaced">L i n k s &nbsp; t o &nbsp; t h e &nbsp; m u s i c</h2><ul class="links">' + links.map(function (l) { var u = okUrl(l.url); return '<li><a href="' + h(u) + '" target="_blank" rel="noopener">' + h(l.text && !/^https?:/.test(l.text) ? l.text : u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')) + '</a></li>'; }).join('') + '</ul></section>' : '') +
     '<nav class="pager">' + (prev ? '<a href="' + h(mixHash(prev)) + '"><small>Older</small>' + h(prev.title) + '</a>' : '<span></span>') + (next ? '<a href="' + h(mixHash(next)) + '" style="text-align:right"><small>Newer</small>' + h(next.title) + '</a>' : '') + '</nav></section>';
 
@@ -606,6 +653,8 @@ function renderMix(main, slug, at) {
     if (mb) { var on = mb.getAttribute('aria-pressed') !== 'true'; mb.setAttribute('aria-pressed', on); setMark(m.slug, mb.dataset.mark, on); return; }
     var pb = e.target.closest('[data-play]');
     if (pb) { Player.open(m, pb.dataset.play, null); return; }
+    var bp = e.target.closest('[data-bcp]');
+    if (bp) { Player.openBc(m, +bp.dataset.bcp); return; }
     var sb = e.target.closest('#strip .seg');
     if (sb) {
       // A mouse or touch click plays from the exact spot clicked; the keyboard (no pointer position) plays from the track's start.
@@ -636,7 +685,12 @@ function renderMix(main, slug, at) {
       if (S._autoAt !== location.hash) { S._autoAt = location.hash; jump(m, at); }
     }
   }
+  if (STANDALONE && S._albumIdx != null && S._autoAt !== location.hash) {
+    S._autoAt = location.hash; var aiq = S._albumIdx;
+    setTimeout(function () { Player.openBc(m, aiq); var al = main.querySelector('ol.albums li[data-ai="' + aiq + '"]'); if (al) al.scrollIntoView({ block: 'center' }); }, 60);
+  }
   if (Player.mix === m) Player.paint();
+  if (Player.bc && Player.bc.m === m) document.querySelectorAll('ol.albums li').forEach(function (li) { li.classList.toggle('now', +li.dataset.ai === Player.bc.i); });
 }
 function stripSec(m, e) {
   var st = $('strip'); if (!st || !m._end) return null;
@@ -771,8 +825,30 @@ var Player = {
       var hd = $('head'); if (hd && m._end) { hd.hidden = false; hd.style.left = Math.min(100, this.pos / m._end * 100) + '%'; }
     }
   },
+  // Albums named in posts play in Bandcamp's own embedded player (press play inside it).
+  openBc: function (m, i) {
+    var a = m.albums && m.albums[i]; if (!STANDALONE || !a || !a.bc || !a.bc.id) return;
+    this.close();
+    this.bc = { m: m, i: i };
+    $('player').hidden = false; $('pMc').hidden = true; $('pMp3').hidden = true;
+    $('pLike').disabled = true; $('pMore').disabled = true;
+    $('pNow').innerHTML = '<b>' + h(a.album) + '</b> · ' + h(a.artist) + ' · Bandcamp: press play in the player';
+    var f = document.createElement('iframe');
+    f.className = 'bc'; f.title = 'Bandcamp player: ' + a.artist + ' – ' + a.album; f.allow = 'autoplay'; f.setAttribute('seamless', '');
+    f.src = 'https://bandcamp.com/EmbeddedPlayer/' + (a.bc.type === 'track' ? 'track' : 'album') + '=' + a.bc.id + '/size=large/bgcol=1a1c28/linkcol=dba8c8/tracklist=false/artwork=small/transparent=true/';
+    $('pSlot').replaceChildren(f);
+    document.querySelectorAll('ol.albums li').forEach(function (li) { li.classList.toggle('now', +li.dataset.ai === i); });
+    OneTab.announce();
+  },
   // Another tab started playing: pause here (and drop any jump still being retried, which could restart playback).
   pauseHere: function () {
+    if (this.bc) {
+      // Bandcamp's player can't be paused from outside, so it is closed instead.
+      $('pSlot').replaceChildren(); $('pNow').innerHTML += ' · stopped: another tab started playing';
+      this.bc = null; document.querySelectorAll('ol.albums li.now').forEach(function (li) { li.classList.remove('now'); });
+      toast('Stopped here because another tab started playing.', 3000);
+      return;
+    }
     if (!this.mix) return;
     var was = (this.audio && !this.audio.paused) || this.playing || this.pending != null;
     this.pending = null; this.target = null; this.seekTok = (this.seekTok || 0) + 1;
@@ -785,6 +861,7 @@ var Player = {
     if (!keep) Log.end();
     if (this.audio) { this.audio.pause(); this.audio.src = ''; }
     this.audio = null; this.widget = null; this.pending = null; this.playing = false; this.target = null; this.seekTok = (this.seekTok || 0) + 1;
+    if (this.bc) { this.bc = null; document.querySelectorAll('ol.albums li.now').forEach(function (li) { li.classList.remove('now'); }); }
     $('pSlot').replaceChildren();
     if (!keep) { this.mix = null; this.mode = null; $('player').hidden = true; }
   }

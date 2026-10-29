@@ -19,6 +19,7 @@ import os
 import re
 import sys
 import time
+import unicodedata
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -31,6 +32,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "data")
 ART = os.path.join(ROOT, "art")
 MAX_ART_PER_RUN = int(os.environ.get("MAX_ART_PER_RUN", "800"))
+MAX_ALBUM_LOOKUPS = int(os.environ.get("MAX_ALBUM_LOOKUPS", "120"))
+ALBUM_RECHECK_DAYS = 90
+MB_UA = "LowLightListeningRoom/1.1 ( https://github.com/alexstirling2016/lowlight-room )"
 
 
 def now_iso():
@@ -151,6 +155,70 @@ def is_continuation(prev_raw, line):
     if prev_raw.count("(") > prev_raw.count(")"):
         return True  # the entry above left a bracket open
     return bool(YEAR_PAREN.search(line)) and not YEAR_PAREN.search(prev_raw)
+
+
+ALBUM_LINE = re.compile(r"^(?:\d{1,3}[.)]\s*|[-•*]\s*)?(?P<a>[^()\[\]]{1,80}?)\s+[-–—]\s+(?P<b>.{1,120}?)"
+                        r"(?:\s*[(\[]\s*(?P<y>(?:19|20)\d{2})\s*[)\]])?\s*$")
+
+
+def parse_albums(lines):
+    """Album lists written as "Artist - Album (Year)", one per line (best-of posts).
+    A line counts when it gives a year, or sits in a run of three or more such lines."""
+    marks = []
+    for l in lines:
+        m = None
+        if not TS_LINE.match(l) and not l.lower().startswith(("http", "[")) and len(l) <= 200:
+            m = ALBUM_LINE.match(l)
+        marks.append(m)
+    out, seen = [], set()
+    i = 0
+    while i < len(lines):
+        if not marks[i]:
+            i += 1
+            continue
+        j = i
+        while j < len(lines) and marks[j]:
+            j += 1
+        run = range(i, j)
+        for k in run:
+            m = marks[k]
+            if len(run) < 3 and not m.group("y"):
+                continue
+            artist, album = m.group("a").strip(" -"), clean_album(m.group("b"), m.group("a"))
+            if not album:
+                continue
+            key = squash(artist) + "|" + squash(album)
+            if not squash(artist) or not squash(album) or key in seen:
+                continue
+            seen.add(key)
+            out.append({"artist": artist, "album": album, "year": int(m.group("y")) if m.group("y") else None,
+                        "line": lines[k]})
+        i = j
+    return out[:150]
+
+
+def clean_album(b, artist):
+    """The album name from the text after "Artist - ": drops a trailing comment, a label in brackets,
+    and reads 'from the album "X"'. None when the line looks like several entries run together."""
+    b = b.strip(" -")
+    fa = re.search(r'from the (?:album|lp|ep)\s+["“”]([^"“”]+)["“”]', b, re.I)
+    if fa:
+        return fa.group(1).strip()
+    parts = SEP.split(b)
+    if len(parts) >= 3:
+        return None
+    if len(parts) == 2 and len(parts[1].split()) > 6:
+        b = parts[0]
+    b = re.sub(r"\s*[(\[][^()\[\]]*[)\]]\s*$", "", b).strip() or b
+    if squash(b) in ("st", "selftitled"):
+        b = artist.strip()
+    return b
+
+
+def squash(s):
+    s = html.unescape(str(s or "")).lower()
+    s = "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
+    return re.sub(r"[^a-z0-9]", "", s)
 
 
 def find_tracklist(lines):
@@ -337,6 +405,7 @@ def parse_post(e):
         "_mcKeys": keys,
         "mp3Url": mp3,
         "links": music[:80],
+        "_albums": parse_albums(lines),
         "tracks": tracks,
         "endSec": end,
         "tracklistSource": "post" if tracks else None,
@@ -481,6 +550,128 @@ def mixcloud_creator_comments(key):
     return sorted(out, key=lambda c: c.get("published") or "")
 
 
+# ---------------------------------------------------------------- album links
+def _mb(path):
+    req = urllib.request.Request("https://musicbrainz.org/ws/2/" + path, headers={"User-Agent": MB_UA, "Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        out = json.loads(r.read().decode("utf-8", "replace"))
+    time.sleep(1.1)  # MusicBrainz asks for at most one request a second
+    return out
+
+
+def _bc_urls(rels):
+    return [((r.get("url") or {}).get("resource") or "") for r in rels or [] if "bandcamp.com" in ((r.get("url") or {}).get("resource") or "")]
+
+
+def musicbrainz_bandcamp(artist, album):
+    """(url, kind) from MusicBrainz: the release's Bandcamp page, else the artist's; or (None, None)."""
+    q = 'release:"%s" AND artist:"%s"' % (album.replace('"', " "), artist.replace('"', " "))
+    d = _mb("release/?fmt=json&limit=8&query=" + urllib.parse.quote(q))
+    rels, artist_id = [], None
+    sa, sb = squash(artist), squash(album)
+    for r in d.get("releases", []) or []:
+        title = squash(r.get("title"))
+        credit = squash("".join((c.get("name") or "") + (c.get("joinphrase") or "") for c in r.get("artist-credit") or []))
+        if int(r.get("score") or 0) < 85 or not title or not credit:
+            continue
+        if not (title == sb or (len(sb) > 5 and (sb in title or title in sb))):
+            continue
+        if not (sa in credit or credit in sa):
+            continue
+        rels.append(r["id"])
+        if not artist_id and r.get("artist-credit"):
+            artist_id = ((r["artist-credit"][0] or {}).get("artist") or {}).get("id")
+        if len(rels) >= 3:
+            break
+    for rid in rels:
+        urls = _bc_urls(_mb("release/" + rid + "?fmt=json&inc=url-rels").get("relations"))
+        album_urls = [u for u in urls if "/album/" in u or "/track/" in u] or urls
+        if album_urls:
+            return album_urls[0], "bandcamp"
+    if artist_id:
+        urls = _bc_urls(_mb("artist/" + artist_id + "?fmt=json&inc=url-rels").get("relations"))
+        if urls:
+            return urls[0], "bandcamp-artist"
+    return None, None
+
+
+BC_PROPS = re.compile(r'<meta\s+name="bc-page-properties"\s+content="([^"]+)"', re.I)
+
+
+def bandcamp_item(url):
+    """{"type": "album"|"track", "id": n} for a Bandcamp album or track page, read from the page's own metadata."""
+    page = get(url, tries=2)
+    m = BC_PROPS.search(page)
+    if not m:
+        return None
+    props = json.loads(html.unescape(m.group(1)))
+    t = {"a": "album", "t": "track"}.get(props.get("item_type"))
+    return {"type": t, "id": int(props["item_id"])} if t and props.get("item_id") else None
+
+
+def post_link_for(a, links):
+    sa, sb = squash(a["artist"]), squash(a["album"])
+    best = None
+    for l in links or []:
+        u = squash(urllib.parse.unquote(l.get("url") or "").split("//", 1)[-1])
+        tx = squash(l.get("text"))
+        if (len(sb) >= 4 and (sb in u or (tx and sb in tx))) or (len(sa) >= 4 and sa in u and "bandcamp" in u):
+            if "bandcamp.com" in (l.get("url") or "") or best is None:
+                best = l["url"]
+    return best
+
+
+def resolve_albums(mixes):
+    """Fill each album's link (and Bandcamp player id) from the post's links, MusicBrainz and the album page.
+    Results are cached in data/albumlinks.json, so each album is looked up once (misses again after 90 days)."""
+    path = os.path.join(DATA, "albumlinks.json")
+    try:
+        cache = json.load(open(path, encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        cache = {}
+    now = datetime.now(timezone.utc)
+    looked = found = players = errors = 0
+    for s, m in sorted(mixes.items(), key=lambda kv: kv[1].get("published") or "", reverse=True):
+        for a in m.get("albums") or []:
+            key = squash(a["artist"]) + "|" + squash(a["album"])
+            c = cache.get(key)
+            own = post_link_for(a, m.get("links"))
+            if own and (not c or c.get("url") != own):
+                c = cache[key] = {"url": own, "kind": "post", "checked": now_iso()}
+                if "bandcamp.com" in own and ("/album/" in own or "/track/" in own):
+                    try:
+                        c["bc"] = bandcamp_item(own); time.sleep(1)
+                    except Exception:  # noqa: BLE001
+                        pass
+            stale = c and not c.get("url") and (now - (_when(c.get("checked")) or now)).days >= ALBUM_RECHECK_DAYS
+            if (not c or stale) and looked < MAX_ALBUM_LOOKUPS:
+                looked += 1
+                try:
+                    url, kind = musicbrainz_bandcamp(a["artist"], a["album"])
+                    c = cache[key] = {"url": url, "kind": kind, "checked": now_iso()}
+                    if url and kind == "bandcamp" and ("/album/" in url or "/track/" in url):
+                        try:
+                            c["bc"] = bandcamp_item(url); time.sleep(1)
+                        except Exception:  # noqa: BLE001
+                            pass
+                except Exception:  # noqa: BLE001
+                    errors += 1
+                    continue
+            if c and c.get("url"):
+                a["url"], a["kind"] = c["url"], c.get("kind")
+                found += 1
+                if c.get("bc"):
+                    a["bc"] = c["bc"]
+                    players += 1
+    tmp = path + ".tmp"
+    json.dump(cache, open(tmp, "w", encoding="utf-8"), ensure_ascii=False, indent=0, sort_keys=True)
+    os.replace(tmp, path)
+    total = sum(len(m.get("albums") or []) for m in mixes.values())
+    waiting = sum(1 for m in mixes.values() for a in m.get("albums") or []
+                  if squash(a["artist"]) + "|" + squash(a["album"]) not in cache)
+    return {"listed": total, "linked": found, "players": players, "lookedUpThisRun": looked, "waiting": waiting, "errors": errors}
+
+
 def mixcloud_shows():
     shows = {}
     url = f"https://api.mixcloud.com/{MIXCLOUD_USER}/cloudcasts/?limit=100"
@@ -594,6 +785,9 @@ def main():
         if sh:
             if not m["endSec"] and sh.get("audioLength"):
                 m["endSec"] = sh["audioLength"]
+        cands = m.pop("_albums", [])
+        if cands and not m["mixcloudKey"] and not m["mp3Url"]:
+            m["albums"] = cands
         prev = old.get(s) or {}
         m["firstSeen"] = prev.get("firstSeen") or started
         if not prev:
@@ -623,6 +817,9 @@ def main():
             pass
         time.sleep(0.3)
 
+    # albums named in posts without audio (best-of lists): links and Bandcamp players
+    album_stats = resolve_albums(mixes)
+
     for s, m in mixes.items():
         body = {k: v for k, v in m.items() if k not in ("firstSeen", "fetchedAt", "changedAt", "hash")}
         h = hashlib.sha1(json.dumps(body, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:12]
@@ -643,6 +840,7 @@ def main():
         "tracklistsFromComments": from_comments, "newThisRun": new[:200],
         "mixcloudMatched": sum(1 for m in mixes.values() if m.get("mixcloud")),
         "coversSaved": got, "notes": notes,
+        "albums": album_stats,
         "mixcloudCommentsRead": mc_read, "tracklistsFromMixcloudComments": mc_found,
         "mixcloudCommentErrors": mc_errors[:10],
     }
