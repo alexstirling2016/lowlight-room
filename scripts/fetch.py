@@ -20,6 +20,7 @@ import re
 import sys
 import time
 import unicodedata
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -553,11 +554,19 @@ def mixcloud_creator_comments(key):
 
 # ---------------------------------------------------------------- album links
 def _mb(path):
+    """One MusicBrainz request at its one-a-second pace. When it throttles (503/429, common from
+    shared GitHub runner addresses), wait and try again a few times before giving up."""
     req = urllib.request.Request("https://musicbrainz.org/ws/2/" + path, headers={"User-Agent": MB_UA, "Accept": "application/json"})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        out = json.loads(r.read().decode("utf-8", "replace"))
-    time.sleep(1.1)  # MusicBrainz asks for at most one request a second
-    return out
+    for attempt in range(5):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                out = json.loads(r.read().decode("utf-8", "replace"))
+            time.sleep(1.1)
+            return out
+        except urllib.error.HTTPError as e:
+            if e.code not in (429, 502, 503, 504) or attempt == 4:
+                raise
+            time.sleep(min(30, 2 + 3 * 2 ** attempt))
 
 
 def _bc_urls(rels):
@@ -632,6 +641,7 @@ def resolve_albums(mixes):
         cache = {}
     now = datetime.now(timezone.utc)
     looked = found = players = errors = 0
+    why = []
     for s, m in sorted(mixes.items(), key=lambda kv: kv[1].get("published") or "", reverse=True):
         for a in m.get("albums") or []:
             key = squash(a["artist"]) + "|" + squash(a["album"])
@@ -655,8 +665,10 @@ def resolve_albums(mixes):
                             c["bc"] = bandcamp_item(url); time.sleep(1)
                         except Exception:  # noqa: BLE001
                             pass
-                except Exception:  # noqa: BLE001
+                except Exception as e:  # noqa: BLE001
                     errors += 1
+                    if len(why) < 5:
+                        why.append(f"{a['artist']} - {a['album']}: {e}"[:160])
                     continue
             if c and c.get("url"):
                 a["url"], a["kind"] = c["url"], c.get("kind")
@@ -670,7 +682,7 @@ def resolve_albums(mixes):
     total = sum(len(m.get("albums") or []) for m in mixes.values())
     waiting = sum(1 for m in mixes.values() for a in m.get("albums") or []
                   if squash(a["artist"]) + "|" + squash(a["album"]) not in cache)
-    return {"listed": total, "linked": found, "players": players, "lookedUpThisRun": looked, "waiting": waiting, "errors": errors}
+    return {"listed": total, "linked": found, "players": players, "lookedUpThisRun": looked, "waiting": waiting, "errors": errors, "errorSamples": why}
 
 
 def mixcloud_shows():
