@@ -19,8 +19,18 @@
 "kind": null,
 "url": null
 },
+"4|yesitsoundslikearadioheadalbumbutthatsagoodfreakingthing": {
+"checked": "2026-10-29T00:36:14Z",
+"kind": null,
+"url": null
+},
 "5|thiswholealbumhasalatestagetalktalkvibegoingonabeautifulalbum": {
 "checked": "2026-10-29T00:23:48Z",
+"kind": null,
+"url": null
+},
+"adele|someonelikeyou": {
+"checked": "2026-10-29T00:38:39Z",
 "kind": null,
 "url": null
 },
@@ -34,6 +44,11 @@
 "kind": null,
 "url": null
 },
+"amendunes|bluerose": {
+"checked": "2026-10-29T00:38:41Z",
+"kind": null,
+"url": null
+},
 "andrewbird|areyouserious": {
 "checked": "2026-10-29T00:26:59Z",
 "kind": "bandcamp-artist",
@@ -43,6 +58,11 @@
 "checked": "2026-10-29T00:25:23Z",
 "kind": null,
 "url": null
+},
+"andrewbird|giveitaway": {
+"checked": "2026-10-29T00:38:51Z",
+"kind": "bandcamp-artist",
+"url": "https://andrewbird.bandcamp.com/"
 },
 "andrewbird|pulaskiatnight": {
 "checked": "2026-10-29T00:28:21Z",
@@ -122,6 +142,11 @@
 "kind": "bandcamp-artist",
 "url": "https://bonobomusic.bandcamp.com/"
 },
+"brandycarlile|thejoke": {
+"checked": "2026-10-29T00:39:00Z",
+"kind": null,
+"url": null
+},
 "brucespringsteen|hellosunshine": {
 "checked": "2026-10-29T00:29:00Z",
 "kind": null,
@@ -165,6 +190,11 @@
 "kind": null,
 "url": null
 },
+"colinstetson|spindrift": {
+"checked": "2026-10-29T00:39:02Z",
+"kind": null,
+"url": null
+},
 "coppicehalifax|inlandbynight": {
 "bc": {
 "id": 592508083,
@@ -179,6 +209,15 @@
 "kind": "bandcamp-artist",
 "url": "https://courtneybarnett.bandcamp.com/"
 },
+"courtneymarieandrews|loosefuture": {
+"bc": {
+"id": 109861569,
+"type": "album"
+},
+"checked": "2026-10-29T00:36:23Z",
+"kind": "bandcamp",
+"url": "https://courtneymarieandrews.bandcamp.com/album/loose-future"
+},
 "curseoflomo|peopleincars": {
 "checked": "2026-10-29T00:24:01Z",
 "kind": null,
@@ -188,6 +227,15 @@
 "checked": "2026-10-29T00:29:21Z",
 "kind": "bandcamp-artist",
 "url": "https://damienjurado.bandcamp.com/"
+},
+"damienjurado|thehorizonjustlaughed": {
+"bc": {
+"id": 4019020703,
+"type": "album"
+},
+"checked": "2026-10-29T00:38:25Z",
+"kind": "bandcamp",
+"url": "https://damienjurado.bandcamp.com/album/the-horizon-just-laughed"
 },
 "davidbowie|blackstar": {
 "checked": "2026-10-29T00:26:45Z",
@@ -280,6 +328,11 @@
 "kind": "post",
 "url": "http://fieldrotation.bandcamp.com/releases"
 },
+"fleetfoxes|bluespottedtail": {
+"checked": "2026-10-29T00:39:08Z",
+"kind": null,
+"url": null
+},
 "flockofdimes|headofrosesphantomlimb": {
 "bc": {
 "id": 2659816752,
@@ -318,6 +371,21 @@
 "kind": "bandcamp-artist",
 "url": "https://frank-turner.bandcamp.com/"
 },
+"gangofyouths|angelinrealtime": {
+"checked": "2026-10-29T00:36:10Z",
+"kind": "bandcamp-artist",
+"url": "https://gangofyouths.bandcamp.com/"
+},
+"gregoryalanisakov|suitcasefullofsparks": {
+"checked": "2026-10-29T00:39:10Z",
+"kind": null,
+"url": null
+},
+"hardwell|spaceman": {
+"checked": "2026-10-29T00:39:18Z",
+"kind": null,
+"url": null
+},
 "herion|outabout": {
 "checked": "2026-10-29T00:30:19Z",
 "kind": "post",
@@ -327,6 +395,11 @@
 "checked": "2026-10-29T00:30:19Z",
 "kind": "post",
 "url": "http://www.fluidaudio.co.uk/2010/06/28/005-our-fearful-symmetry/"
+},
+"iconapopcharlixcx|iloveit": {
+"checked": "2026-10-29T00:39:20Z",
+"kind": null,
+"url": null
 },
 "infinitecoil|transmit": {
 "bc": {
@@ -342,6 +415,20 @@
 "kind": "post",
 "url": "http://www.12k.com/index.php/site/releases/lay-by_lullaby/"
 },
+"janellemonae|screwed": {
+"checked": "2026-10-29T00:39:21Z",
+"kind": null,
+"url": null
+},
+"japandroids|thehousethatheavenbuilt": {
+"bc": {
+"id": 3748822180,
+"type": "album"
+},
+"checked": "2026-10-29T00:39:26Z",
+"kind": "bandcamp",
+"url": "https://japandroids.bandcamp.com/album/the-house-that-heaven-built"
+},
 "jonhopkins|immunity": {
 "checked": "2026-10-29T00:30:03Z",
 "kind": "post",
@@ -352,6 +439,25 @@
 "kind": "post",
 "url": "http://www.numerogroup.com/products/jordan-de-la-sierra-gymnosphere-song-of-the-rose"
 },
+"judahthelion|quarterlifecrisis": {
+"checked": "2026-10-29T00:39:33Z",
+"kind": null,
+"url": null
+},
+"juliajacklin|prepleasure": {
+"bc": {
+"id": 3296978299,
+"type": "album"
+},
+"checked": "2026-10-29T00:36:37Z",
+"kind": "bandcamp",
+"url": "https://juliajacklin.bandcamp.com/album/pre-pleasure"
+},
+"justahuman|breathe": {
+"checked": "2026-10-29T00:39:34Z",
+"kind": null,
+"url": null
+},
 "justinwalter|lullabiesandnightmares": {
 "bc": {
 "id": 4277185652,
@@ -360,6 +466,11 @@
 "checked": "2026-10-29T00:30:02Z",
 "kind": "post",
 "url": "http://justinwalter.bandcamp.com/album/lullabies-nightmares"
+},
+"kaceymusgraves|merrygoround": {
+"checked": "2026-10-29T00:39:39Z",
+"kind": null,
+"url": null
 },
 "kaceymusgraves|sametrailerdifferentpark": {
 "checked": "2026-10-29T00:25:57Z",
@@ -371,6 +482,43 @@
 "kind": "bandcamp-artist",
 "url": "https://katebush.bandcamp.com/"
 },
+"kevinmorby|citymusic": {
+"bc": {
+"id": 889699928,
+"type": "album"
+},
+"checked": "2026-10-29T00:39:43Z",
+"kind": "bandcamp",
+"url": "https://kevinmorby.bandcamp.com/album/city-music"
+},
+"kevinmorby|thisisaphotograph": {
+"bc": {
+"id": 579090741,
+"type": "album"
+},
+"checked": "2026-10-29T00:35:36Z",
+"kind": "bandcamp",
+"url": "https://kevinmorby.bandcamp.com/album/this-is-a-photograph"
+},
+"khruangbin|contodoelmundo": {
+"bc": {
+"id": 152628405,
+"type": "album"
+},
+"checked": "2026-10-29T00:38:07Z",
+"kind": "bandcamp",
+"url": "https://khruangbin.bandcamp.com/album/con-todo-el-mundo"
+},
+"kiasmos|zebra": {
+"checked": "2026-10-29T00:39:50Z",
+"kind": "bandcamp-artist",
+"url": "https://kiasmos.bandcamp.com/"
+},
+"kishibashi|brightwhites": {
+"checked": "2026-10-29T00:39:51Z",
+"kind": null,
+"url": null
+},
 "kylebobbydunn|bringmetheheadofkylebobbydunn": {
 "bc": {
 "id": 2576718619,
@@ -380,10 +528,39 @@
 "kind": "post",
 "url": "http://lowpoint.bandcamp.com/album/bring-me-the-head-of-kyle-bobby-dunn"
 },
+"lanadelrey|videogames": {
+"checked": "2026-10-29T00:39:53Z",
+"kind": null,
+"url": null
+},
+"leonardcohen|goinghome": {
+"checked": "2026-10-29T00:39:55Z",
+"kind": null,
+"url": null
+},
+"leonbridges|cominghome": {
+"checked": "2026-10-29T00:40:03Z",
+"kind": null,
+"url": null
+},
+"lissie|loveblows": {
+"checked": "2026-10-29T00:40:04Z",
+"kind": null,
+"url": null
+},
 "lordhuron|lonesomedreams": {
 "checked": "2026-10-29T00:25:39Z",
 "kind": "bandcamp-artist",
 "url": "https://lordhuron.bandcamp.com/"
+},
+"losbitchos|letthefestivitiesbegin": {
+"bc": {
+"id": 4021857915,
+"type": "album"
+},
+"checked": "2026-10-29T00:36:46Z",
+"kind": "bandcamp",
+"url": "https://losbitchos.bandcamp.com/album/let-the-festivities-begin"
 },
 "low|doublenegative": {
 "bc": {
@@ -393,6 +570,15 @@
 "checked": "2026-10-29T00:27:52Z",
 "kind": "bandcamp",
 "url": "https://lowtheband.bandcamp.com/album/double-negative"
+},
+"makayamccraven|inthesetimes": {
+"bc": {
+"id": 1246560818,
+"type": "album"
+},
+"checked": "2026-10-29T00:36:54Z",
+"kind": "bandcamp",
+"url": "https://intlanthem.bandcamp.com/album/in-these-times"
 },
 "mapsanddiagrams|timbre": {
 "bc": {
@@ -432,6 +618,11 @@
 "kind": "post",
 "url": "http://oktaf.bandcamp.com/album/pr-sence-acousmatique"
 },
+"michaelkiwanuka|blackmaninawhiteworld": {
+"checked": "2026-10-29T00:40:12Z",
+"kind": null,
+"url": null
+},
 "momma|householdname": {
 "bc": {
 "id": 1617617376,
@@ -441,10 +632,25 @@
 "kind": "bandcamp",
 "url": "https://mommaband.bandcamp.com/album/household-name"
 },
+"munciegirls|isntlifefunny": {
+"checked": "2026-10-29T00:40:14Z",
+"kind": null,
+"url": null
+},
+"mymorningjacket|wonderful": {
+"checked": "2026-10-29T00:40:16Z",
+"kind": null,
+"url": null
+},
 "nest|retold": {
 "checked": "2026-10-29T00:30:19Z",
 "kind": "post",
 "url": "http://www.serein.co.uk/releases/sere001/nest-retold"
+},
+"niluferyanya|painless": {
+"checked": "2026-10-29T00:37:06Z",
+"kind": "bandcamp-artist",
+"url": "https://niluferyanya.bandcamp.com/"
 },
 "nobutosuda|transitoriness": {
 "bc": {
@@ -454,6 +660,21 @@
 "checked": "2026-10-29T00:30:14Z",
 "kind": "post",
 "url": "https://organic-industries.bandcamp.com/album/nobuto-suda-transitoriness-oi010"
+},
+"nonkeen|animalfarm": {
+"checked": "2026-10-29T00:40:18Z",
+"kind": null,
+"url": null
+},
+"oddisee|thatslove": {
+"checked": "2026-10-29T00:40:19Z",
+"kind": null,
+"url": null
+},
+"olafurarnalds|particles": {
+"checked": "2026-10-29T00:40:21Z",
+"kind": null,
+"url": null
 },
 "opticalframeworks|littlepieceofperseverance": {
 "bc": {
@@ -473,25 +694,70 @@
 "kind": "post",
 "url": "http://parisdjs.bandcamp.com/album/rise-of-the-troubadour-warriors-tropical-grooves-afrofunk-international-vol-3"
 },
+"phantogram|blackoutdays": {
+"checked": "2026-10-29T00:40:29Z",
+"kind": "bandcamp-artist",
+"url": "https://phantogram.bandcamp.com/"
+},
+"phoebebridgers|motionsickness": {
+"checked": "2026-10-29T00:40:34Z",
+"kind": "bandcamp-artist",
+"url": "https://phoebebridgers.bandcamp.com/"
+},
+"phox|slowmotion": {
+"checked": "2026-10-29T00:40:39Z",
+"kind": null,
+"url": null
+},
 "piersfaccinivincentsegal|songsoftimelost": {
 "checked": "2026-10-29T00:26:28Z",
 "kind": "bandcamp-artist",
 "url": "https://piersfaccini.bandcamp.com/"
+},
+"piersfaccinivincentsegal|theclosingofoureyes": {
+"checked": "2026-10-29T00:40:41Z",
+"kind": null,
+"url": null
+},
+"porches|beapart": {
+"checked": "2026-10-29T00:40:42Z",
+"kind": null,
+"url": null
+},
+"publicservicebroadcasting|go": {
+"checked": "2026-10-29T00:40:49Z",
+"kind": "bandcamp-artist",
+"url": "https://publicservicebroadcasting.bandcamp.com/"
 },
 "radiohead|amoonshapedpool": {
 "checked": "2026-10-29T00:27:06Z",
 "kind": "bandcamp-artist",
 "url": "https://radiohead.bandcamp.com/"
 },
+"remembersports|saturday": {
+"checked": "2026-10-29T00:40:56Z",
+"kind": null,
+"url": null
+},
 "roedelius|stunden": {
 "checked": "2026-10-29T00:30:05Z",
 "kind": "post",
 "url": "http://www.bureau-b.com/roedeliusschneider.php"
 },
+"rogerwaters|thelastrefugee": {
+"checked": "2026-10-29T00:40:58Z",
+"kind": null,
+"url": null
+},
 "saffronkeiramariomassa|causeandeffect": {
 "checked": "2026-10-29T00:30:05Z",
 "kind": "post",
 "url": "http://denovali.com/saffronkeira/"
+},
+"sethavettjessicaleamayfield|fondfarewell": {
+"checked": "2026-10-29T00:41:00Z",
+"kind": null,
+"url": null
 },
 "shearwater|thegreatawakening": {
 "bc": {
@@ -501,6 +767,11 @@
 "checked": "2026-10-29T00:23:26Z",
 "kind": "bandcamp",
 "url": "https://shearwater.bandcamp.com/album/the-great-awakening-2022"
+},
+"snailmail|lush": {
+"checked": "2026-10-29T00:38:14Z",
+"kind": "bandcamp",
+"url": "https://snailmaillush.bandcamp.com/album/lush"
 },
 "spheruleus|frozenquarters": {
 "checked": "2026-10-29T00:30:19Z",
@@ -516,10 +787,25 @@
 "kind": "post",
 "url": "https://irregularcrates.bandcamp.com/album/the-possibility-of-loss"
 },
+"sprints|amodernjobep": {
+"checked": "2026-10-29T00:35:40Z",
+"kind": null,
+"url": null
+},
+"strandofoaks|jm": {
+"checked": "2026-10-29T00:41:10Z",
+"kind": null,
+"url": null
+},
 "subheim|headphonecommutemix": {
 "checked": "2026-10-29T00:30:19Z",
 "kind": "post",
 "url": "http://reviews.headphonecommute.com/2010/11/01/subheim-headphone-commute-mix/"
+},
+"sunkilmoon|sunshineinchicago": {
+"checked": "2026-10-29T00:41:16Z",
+"kind": null,
+"url": null
 },
 "tessellaterecordings|earthtones": {
 "bc": {
@@ -529,6 +815,24 @@
 "checked": "2026-10-29T00:30:05Z",
 "kind": "post",
 "url": "http://tessellaterecordings.bandcamp.com/album/earthtones"
+},
+"theas|fruit": {
+"bc": {
+"id": 819129907,
+"type": "album"
+},
+"checked": "2026-10-29T00:37:09Z",
+"kind": "bandcamp",
+"url": "https://the-as.bandcamp.com/album/fruit"
+},
+"thebeths|expertinadyingfield": {
+"bc": {
+"id": 1759355578,
+"type": "album"
+},
+"checked": "2026-10-29T00:35:53Z",
+"kind": "bandcamp",
+"url": "https://thebethsnz.bandcamp.com/album/expert-in-a-dying-field"
 },
 "thecircularruins|fullcircle": {
 "bc": {
@@ -558,6 +862,11 @@
 "checked": "2026-10-29T00:29:51Z",
 "kind": "post",
 "url": "https://facture.bandcamp.com/album/light-folds-2"
+},
+"thesmile|alightforattractingattention": {
+"checked": "2026-10-29T00:35:48Z",
+"kind": "bandcamp-artist",
+"url": "https://thesmile.bandcamp.com/"
 },
 "tonepoet|headspace": {
 "bc": {
@@ -608,5 +917,10 @@
 "checked": "2026-10-29T00:25:14Z",
 "kind": "bandcamp",
 "url": "https://yacht.bandcamp.com/album/shangri-la"
+},
+"yardact|theoverload": {
+"checked": "2026-10-29T00:36:03Z",
+"kind": "bandcamp-artist",
+"url": "https://yardact.bandcamp.com/"
 }
 }
