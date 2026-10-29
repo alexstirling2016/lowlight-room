@@ -117,8 +117,9 @@ def parse_html(content):
 
 
 # ---------------------------------------------------------------- tracklists
-TS = r"(\d{1,3}:\d{2}(?::\d{2})?)"
-TS_LINE = re.compile(r"^" + TS + r"(?:\s*[-–—]\s*" + TS + r")?\s*[-–—:.]?\s+(.+)$")
+TS = r"(\d{1,3}:\d{2}(?::\d{2})?)(?:[:.]\d{3})?"  # milliseconds ("4:00:000") are read and dropped
+# A running number or bullet may come first: "01) 00:00 Artist - Title", "1. 0:00 ...", "- 08:17 ...".
+TS_LINE = re.compile(r"^(?:\d{1,3}[.)]\s*|[-•⦁·▪◦*]\s*)?" + TS + r"(?:\s*[-–—]\s*" + TS + r")?\s*[-–—:.]?\s+(.+)$")
 NUM_LINE = re.compile(r"^(\d{1,2})[.)]\s+(.+\s[-–—]\s.+)$")
 HEADER = re.compile(r"t\s*r\s*a\s*c\s*k\s*\s*l\s*i\s*s\s*t", re.I)
 SEP = re.compile(r"\s+[-–—]\s+")
