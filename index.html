@@ -444,6 +444,13 @@ function ghLinksHtml() {
 function paintGh() { var el = $('ghLinks'); if (el) el.innerHTML = ghLinksHtml(); }
 function mixHash(m, sec) { return '#m-' + m.slug + (sec != null ? '--at-' + Math.round(sec) : ''); }
 // The minute stamp makes each link fetch the newest player page rather than a copy the browser kept (GitHub Pages lets browsers keep it for 10 minutes).
+// Every play link from the room goes to the same player tab, so clicking around changes what plays instead of piling up tabs.
+function openPlayer(url) { var a = document.createElement('a'); a.href = url; a.target = 'lowlight-player'; document.body.appendChild(a); a.click(); a.remove(); }
+document.addEventListener('click', function (e) {
+  if (STANDALONE) return;
+  var a = e.target.closest && e.target.closest('a[href]'), p = pagesUrl();
+  if (a && p && a.href.indexOf(p) === 0) { a.target = 'lowlight-player'; a.removeAttribute('rel'); }
+}, true);
 function playerLink(m, sec) { var p = pagesUrl(); return p ? p + '?v=' + Math.floor(Date.now() / 60000).toString(36) + mixHash(m, sec) : null; }
 
 // ------------------------------------------------------------ routing
@@ -456,6 +463,7 @@ function route() {
     if (mt) { slug = mt[1]; at = +mt[2]; } else if (ma) { slug = ma[1]; S._albumIdx = +ma[2]; } else slug = rest;
     tab = 'mix';
   } else if (/^(mixes|artists|ask|yours|listening|about)$/.test(hs)) tab = hs;
+  else if (hs.indexOf('ask-results-') === 0) { tab = 'ask'; if (S._handoffKey !== hs) { S._handoffKey = hs; try { S._handoff = JSON.parse(hs.slice(12)); } catch (e) { S._handoff = null; } } }
   else if (hs.indexOf('ask-') === 0) { tab = 'ask'; var qq = hs.slice(4).replace(/-/g, ' ').trim(); if (qq && qq !== S.ask.text) { S.ask.text = qq; S._autoAsk = qq; } }
   else if (hs.indexOf('label-') === 0) { S.label = hs.slice(6).replace(/-/g, ' '); S.q = ''; S.shown = 48; tab = 'mixes'; }
   else if (hs.indexOf('more-') === 0) { var mm = hs.slice(5).match(/^(.*)--(\d+)$/); if (mm) { slug = mm[1]; at = +mm[2]; tab = 'more'; } }
@@ -671,7 +679,7 @@ function renderMix(main, slug, at) {
       // The single click waits a moment so a double click doesn't jump twice.
       e.preventDefault();
       var start = +sb.dataset.sec;
-      var go = function (sec) { if (!STANDALONE) { var pl2 = playerLink(m, sec); if (pl2) window.open(pl2, '_blank', 'noopener'); return; } jump(m, sec); };
+      var go = function (sec) { if (!STANDALONE) { var pl2 = playerLink(m, sec); if (pl2) openPlayer(pl2); return; } jump(m, sec); };
       clearTimeout(S._stripT);
       if (!e.detail || e.detail >= 2) { go(start); return; }
       var spot = stripSec(m, e); if (spot == null) spot = start;
@@ -1206,7 +1214,7 @@ function bindLs() {
       if (k[0] === 'l') { location.hash = '#label-' + k.slice(1).replace(/\s+/g, '-'); return; }
       if (k[0] === 'a') { S.lsArtist = S.lsArtist === k.slice(1) ? null : k.slice(1); drawListening(); var pa = $('lsArtist'); if (pa) pa.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); return; }
       if (k[0] === 'x') return;
-      if (k[0] === 't') { var tt = trackStats().tracks[k.slice(1)], tm = tt && S.bySlug[tt.slug]; if (tm && !STANDALONE) { var tpl = playerLink(tm, tt.at); if (tpl) window.open(tpl, '_blank', 'noopener'); else location.hash = mixHash(tm, tt.at); return; } if (tm) { location.hash = mixHash(tm); setTimeout(function () { jump(tm, tt.at); }, 60); } return; }
+      if (k[0] === 't') { var tt = trackStats().tracks[k.slice(1)], tm = tt && S.bySlug[tt.slug]; if (tm && !STANDALONE) { var tpl = playerLink(tm, tt.at); if (tpl) openPlayer(tpl); else location.hash = mixHash(tm, tt.at); return; } if (tm) { location.hash = mixHash(tm); setTimeout(function () { jump(tm, tt.at); }, 60); } return; }
       S.lsSel = S.lsSel === k ? null : k; drawListening();
       var l = $('lsList'); if (l && S.lsSel) l.scrollIntoView({ block: 'start', behavior: 'smooth' });
     }
@@ -1317,7 +1325,7 @@ function pvHtml(m) {
 function pvSec(st, m, e) { var r = st.getBoundingClientRect(); if (!r.width || !m._end) return null; return Math.round(Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * m._end); }
 function pvPlay(m, sec) {
   if (STANDALONE) { Player.open(m, null, sec); return; }
-  var pl = playerLink(m, sec); if (pl) window.open(pl, '_blank', 'noopener'); else toast('The player copy isn’t set up yet (see About).');
+  var pl = playerLink(m, sec); if (pl) openPlayer(pl); else toast('The player copy isn’t set up yet (see About).');
 }
 document.addEventListener('click', function (e) {
   var out = e.target.closest('#askOut'); if (!out) return;
@@ -1501,6 +1509,7 @@ function renderAsk(main) {
   main.querySelector('.examples').addEventListener('click', function (e) { var b = e.target.closest('[data-ex]'); if (!b) return; $('askT').value = EXAMPLES[+b.dataset.ex]; runAsk(EXAMPLES[+b.dataset.ex]); });
   $('askOut').addEventListener('click', function (e) { var b = e.target.closest('[data-stop]'); if (b && askCtl) { askCtl.abort(); S.ask.status = 'stopped'; drawAsk(); } });
   drawAsk();
+  if (applyHandoff()) { $('askT').value = S.ask.text; drawAsk(); }
   if (S._autoAsk) { var q0 = S._autoAsk; S._autoAsk = null; runAsk(q0); }
 }
 var ROOM_URL = 'https://claude.ai/artifact/YD93cCn7fCKQG9Kc1SLQ4a';
@@ -1595,6 +1604,20 @@ function whyLocal(m, text) {
   return bits.join(' ');
 }
 var ERRS = { not_granted: 'Claude isn’t allowed in this view. Open the page’s Permissions menu to allow it, then ask again.', rate_limited: 'Claude is busy or your usage limit is reached. Try again in a little while.', prompt_too_large: 'The request was too large for Claude here.', empty: 'Claude didn’t return a usable answer.', invalid_json: 'Claude’s answer came back garbled.' };
+function alsoHtml(a) {
+  if (!a.also || !a.also.length) return '';
+  return '<section class="sect" style="margin-top:2.4rem"><h2 class="spaced">A l s o &nbsp; c l o s e</h2><p class="note">Strong matches Claude didn’t put in its top picks.</p><div class="picks">' +
+    a.also.map(function (m) { return moreMixHtml({ m: m }, (m.ai && m.ai.summary) || whyLocal(m, a.text)).replace(/<\/div><\/article>$/, pvActions(m) + '</div></article>'); }).join('') + '</div></section>';
+}
+function applyHandoff() {
+  var hp = S._handoff; if (!hp || !S.loaded) return false;
+  S._handoff = null;
+  var picks = (hp.p || []).map(function (x) { var m = S.bySlug[x.s]; return m ? { m: m, why: String(x.w || '').slice(0, 900), quote: String(x.q || '').slice(0, 300), caveat: String(x.c || '').slice(0, 300), ai: true } : null; }).filter(Boolean);
+  if (!picks.length) return false;
+  S.ask = { text: String(hp.q || ''), picks: picks, reading: String(hp.r || '').slice(0, 300), status: '', handoff: true, also: (hp.a || []).map(function (s) { return S.bySlug[s]; }).filter(Boolean) };
+  S._shownPicks = {};
+  return true;
+}
 function drawAsk() {
   var out = $('askOut'); if (!out) return;
   var a = S.ask;
@@ -1615,7 +1638,7 @@ function drawAsk() {
       return '<article class="pick"><a href="' + h(mixHash(m)) + '" tabindex="-1" aria-hidden="true">' + coverHtml(m) + '</a><div><h3><a href="' + h(mixHash(m)) + '">' + h(m.title) + '</a></h3><p class="note" style="margin-top:.2rem">' + h([String(m.published || '').slice(0, 4), dur(m._end), m.tracks.length ? m.tracks.length + ' tracks' : '', mark(m.slug).heard ? 'heard' : ''].filter(Boolean).join(' · ')) + '</p>' +
         '<p class="why">' + h(p.why) + '</p>' + (p.quote ? '<blockquote class="q">“' + h(p.quote) + '”</blockquote>' : '') + (p.caveat ? '<p class="note">' + h(p.caveat) + '</p>' : '') +
         pvActions(m) + (m.intro ? '<details class="desc"><summary>Read the full description</summary><p>' + h(m.intro) + '</p></details>' : '') + '</div></article>';
-    }).join('') + '</div>' + (!busy && a.picks[0] && a.picks[0].ai ? '<p class="note" style="margin-top:1.4rem">Chosen by Claude after reading ' + (a.read || '') + ' full descriptions.</p>' : '') : '<p class="lede" style="margin-top:1.5rem">No mix mentions those words. Try a label like ambient, berlin school, folk or autumn.</p>');
+    }).join('') + '</div>' + (!busy && a.picks[0] && a.picks[0].ai ? (a.handoff ? '<p class="note" style="margin-top:1.4rem">Claude’s picks from the room. Use ▸ Preview &amp; play to listen right here; your results stay on this page. To refine or ask again, <a href="' + h(ROOM_URL + '#ask') + '" target="_blank" rel="noopener">go back to the room</a>.</p>' + alsoHtml(a) : '<p class="note" style="margin-top:1.4rem">Chosen by Claude after reading ' + (a.read || '') + ' full descriptions.</p>') : '') : '<p class="lede" style="margin-top:1.5rem">No mix mentions those words. Try a label like ambient, berlin school, folk or autumn.</p>');
 }
 
 // ------------------------------------------------------------ YOURS
