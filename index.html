@@ -231,6 +231,9 @@ details.desc p{white-space:pre-line;color:var(--muted);max-width:64ch;margin:.5r
 .player .ctl button.plike[aria-pressed="true"]{color:var(--glow);border-color:var(--glow)}
 .player .ctl button.plike[aria-pressed="true"] svg{fill:currentColor}
 .player .ctl button.plike:disabled{opacity:.4;cursor:default}
+.player .ctl a.psim{display:inline-flex;align-items:center;gap:.35rem;border:1px solid var(--line);border-radius:999px;padding:.2rem .7rem;font-size:.82rem;color:var(--muted);text-decoration:none;white-space:nowrap}
+.player .ctl a.psim:hover{color:var(--ink);border-color:var(--glow)}
+@media(max-width:30rem){.player .ctl a.psim span{display:none}}
 @media(max-width:30rem){.player .ctl button.plike span{display:none}}
 .player .slot{grid-column:1/-1;min-width:0}
 .player iframe{display:block;width:100%;height:60px;border:0}
@@ -290,7 +293,7 @@ footer{margin-top:4rem;padding-top:1rem;border-top:1px solid var(--line);font-si
 <div class="player" id="player" hidden>
   <div class="in">
     <div class="now" id="pNow"></div>
-    <div class="ctl"><button type="button" id="pLike" class="plike" aria-pressed="false" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 8 3.3 4.5 6.9 4.5c2.1 0 3.6 1.2 5.1 3 1.5-1.8 3-3 5.1-3 3.6 0 5.5 3.5 4.2 6.8-1.8 4.6-9.3 9.2-9.3 9.2z"/></svg><span>Like</span></button><button type="button" id="pMore" class="plike" disabled title="More like the track playing now"><b style="font-size:1rem;line-height:.8">≈</b><span>More like this</span></button><button type="button" id="pMc" aria-pressed="true">Mixcloud</button><button type="button" id="pMp3" aria-pressed="false">MP3</button><button type="button" id="pClose" aria-label="Close the player">✕</button></div>
+    <div class="ctl"><button type="button" id="pLike" class="plike" aria-pressed="false" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 8 3.3 4.5 6.9 4.5c2.1 0 3.6 1.2 5.1 3 1.5-1.8 3-3 5.1-3 3.6 0 5.5 3.5 4.2 6.8-1.8 4.6-9.3 9.2-9.3 9.2z"/></svg><span>Like</span></button><button type="button" id="pMore" class="plike" disabled title="More like the track playing now"><b style="font-size:1rem;line-height:.8">≈</b><span>More like this</span></button><a id="pSim" class="psim" href="#" target="lowlight-room" title="Claude finds mixes with the same vibe and energy as this one (opens the room)">≈ <span>Mixes like this</span></a><button type="button" id="pMc" aria-pressed="true">Mixcloud</button><button type="button" id="pMp3" aria-pressed="false">MP3</button><button type="button" id="pClose" aria-label="Close the player">✕</button></div>
     <div class="slot" id="pSlot"></div>
   </div>
 </div>
@@ -463,6 +466,7 @@ function route() {
     if (mt) { slug = mt[1]; at = +mt[2]; } else if (ma) { slug = ma[1]; S._albumIdx = +ma[2]; } else slug = rest;
     tab = 'mix';
   } else if (/^(mixes|artists|ask|yours|listening|about)$/.test(hs)) tab = hs;
+  else if (hs.indexOf('like-') === 0) { tab = 'ask'; var ls = hs.slice(5); if (ls && ls !== S._likeDone) S._autoLike = ls; }
   else if (hs.indexOf('ask-results-') === 0) { tab = 'ask'; if (S._handoffKey !== hs) { S._handoffKey = hs; try { S._handoff = JSON.parse(hs.slice(12)); } catch (e) { S._handoff = null; } } }
   else if (hs.indexOf('ask-') === 0) { tab = 'ask'; var qq = hs.slice(4).replace(/-/g, ' ').trim(); if (qq && qq !== S.ask.text) { S.ask.text = qq; S._autoAsk = qq; } }
   else if (hs.indexOf('label-') === 0) { S.label = hs.slice(6).replace(/-/g, ' '); S.q = ''; S.shown = 48; tab = 'mixes'; }
@@ -625,6 +629,7 @@ function renderMix(main, slug, at) {
     if (mp3) acts.push('<a class="btn" href="' + h(mp3) + '" target="_blank" rel="noopener">MP3</a>');
   }
   if (post) acts.push('<a class="btn" href="' + h(post) + '" target="_blank" rel="noopener">Blog post</a>');
+  acts.push(STANDALONE ? '<a class="btn" href="' + h(ROOM_URL + '#like-' + m.slug) + '" target="lowlight-room" title="Claude finds mixes with the same vibe and energy (opens the room)">≈ Mixes like this ↗</a>' : '<a class="btn" href="#like-' + h(m.slug) + '" title="Claude finds mixes with the same vibe and energy">≈ Mixes like this</a>');
   acts.push('<button type="button" class="btn" data-mark="heard" aria-pressed="' + !!mk.heard + '">Heard it</button>');
   acts.push('<button type="button" class="btn" data-mark="fav" aria-pressed="' + !!mk.fav + '">Favourite</button>');
 
@@ -649,7 +654,7 @@ function renderMix(main, slug, at) {
   var src = m.tracklistSource === 'mixcloud-comment' ? '<p class="note">Tracklist taken from the creator’s comment on Mixcloud' + (m.tracklistComment && m.tracklistComment.published ? ', ' + h(dateStr(m.tracklistComment.published)) : '') + '.</p>' : m.tracklistSource === 'comment' ? '<p class="note">Tracklist taken from a comment' + (m.tracklistComment && m.tracklistComment.author ? ' by ' + h(m.tracklistComment.author) : '') + (m.tracklistComment && m.tracklistComment.published ? ', ' + h(dateStr(m.tracklistComment.published)) : '') + '.</p>' : '';
   var hint = timed.length ? (STANDALONE ? '<p class="note">Tap a time, or anywhere on the bar, to play from there; double-click the bar to start that track from its beginning. Mixcloud sometimes refuses to skip ahead; then the MP3 takes over.</p>' : (pl ? '<p class="note">The times open the player copy of this room at that spot (this page can’t hold a player itself).</p>' : '<p class="note">The times can jump straight into the mix once the player copy is set up (see About).</p>')) : '';
   var links = (m.links || []).filter(function (l) { return okUrl(l.url); });
-  var ai = m.ai && m.ai.summary ? '<section class="sect"><h2 class="spaced">I n &nbsp; s h o r t</h2><div class="mood"><p style="margin:0">' + h(m.ai.summary) + '</p>' + ([m.ai.primaryMood].concat(m.ai.moodTags || []).filter(Boolean).length ? '<div class="tags">' + [m.ai.primaryMood].concat(m.ai.moodTags || []).filter(Boolean).map(function (x) { return '<span>' + h(x) + '</span>'; }).join('') + '</div>' : '') + '<p class="note">Claude’s summary of the post, used by Ask to search. It hasn’t heard the mix.</p></div></section>' : '';
+  var ai = m.ai && m.ai.summary ? '<section class="sect"><h2 class="spaced">I n &nbsp; s h o r t</h2><div class="mood"><p style="margin:0">' + h(m.ai.summary) + '</p>' + ([m.ai.primaryMood].concat(m.ai.moodTags || []).filter(Boolean).length ? '<div class="tags">' + [m.ai.primaryMood].concat(m.ai.moodTags || []).filter(Boolean).map(function (x) { return '<span>' + h(x) + '</span>'; }).join('') + '</div>' : '') + '</div></section>' : '';
 
   main.innerHTML = '<section class="view" aria-label="' + h(m.title) + '">' + (S.askReturn && S.ask && S.ask.picks ? '<a class="back" href="#ask">← Back to search results</a> &nbsp;·&nbsp; ' : '') + '<a class="back" href="#mixes">← All mixes</a>' +
     '<div class="mixhead">' + coverHtml(m, true) + '<div><p class="spaced">' + h((m.published || '').slice(0, 4).split('').join(' ')) + '</p><h1>' + h(m.title) + '</h1><div class="facts">' + facts.map(function (f) { return '<span>' + h(f) + '</span>'; }).join('') + '</div>' +
@@ -837,6 +842,7 @@ var Player = {
     var t = cur != null ? m.tracks[cur] : null;
     this.curTrack = t; this.curIdx = cur;
     var pmb = $('pMore'); if (pmb) pmb.disabled = !likeable(t);
+    var psm = $('pSim'); if (psm) psm.href = ROOM_URL + '#like-' + m.slug;
     var lkb = $('pLike');
     if (lkb) { var can = likeable(t), on = can && liked(t); lkb.disabled = !can; lkb.setAttribute('aria-pressed', on); lkb.title = can ? (on ? 'Liked: ' : 'Like the track playing now: ') + [t.artist, t.title].filter(Boolean).join(' – ') : 'No track is playing yet'; lkb.setAttribute('aria-label', lkb.title); lkb.querySelector('span').textContent = on ? 'Liked' : 'Like'; }
     var waitAt = this.pending != null ? this.pending : this.pos;
