@@ -674,7 +674,7 @@ function renderMix(main, slug, at) {
     stEl.addEventListener('mousemove', function (e) {
       var s3 = stripSec(m, e); if (s3 == null) return;
       var t3 = null; m.tracks.forEach(function (t) { if (t.sec != null && t.sec <= s3) t3 = t; });
-      showTip(fmt(s3) + (t3 ? '  ·  ' + [t3.artist, t3.title].filter(Boolean).join(' – ') + '  (double-click: from its start)' : '  ·  before the first listed track'), e);
+      showTip(fmt(s3) + (t3 ? '  ·  ' + [t3.artist, t3.title].filter(Boolean).join(' – ') : '  ·  before the first listed track'), e);
     });
     stEl.addEventListener('mouseleave', hideTip);
   }
