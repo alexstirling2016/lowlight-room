@@ -1426,6 +1426,8 @@ function renderAsk(main) {
     '<form class="askbox" id="askF"><label class="sr" for="askT">Describe what you want to hear</label><textarea id="askT" placeholder="Slow, spacey synths for a late drive, nothing too dark…">' + h(S.ask.text) + '</textarea><div class="askrow"><span class="note" id="askN" style="margin:0">' + (STANDALONE ? 'This copy matches words only; the room on claude.ai can ask Claude.' : '') + '</span><button class="btn primary" type="submit">Find mixes</button></div></form>' +
     '<div class="examples">' + EXAMPLES.map(function (x, i) { return '<button type="button" class="chip" data-ex="' + i + '">' + h(x) + '</button>'; }).join('') + '</div><div id="askOut"></div></section>';
   $('askF').addEventListener('submit', function (e) { e.preventDefault(); runAsk($('askT').value.trim()); });
+  // Enter sends; Shift+Enter adds a new line (and Enter while composing accented text is left alone).
+  $('askT').addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); runAsk($('askT').value.trim()); } });
   main.querySelector('.examples').addEventListener('click', function (e) { var b = e.target.closest('[data-ex]'); if (!b) return; $('askT').value = EXAMPLES[+b.dataset.ex]; runAsk(EXAMPLES[+b.dataset.ex]); });
   $('askOut').addEventListener('click', function (e) { var b = e.target.closest('[data-stop]'); if (b && askCtl) { askCtl.abort(); S.ask.status = 'stopped'; drawAsk(); } });
   drawAsk();
