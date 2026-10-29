@@ -184,6 +184,14 @@ ol.albums .acts .pl:hover{color:var(--glow-ink);filter:brightness(1.07)}
 .pick h3 a{color:var(--ink);text-decoration:none}
 .pick p{margin:.35rem 0 0;max-width:60ch}
 .pick .why{color:var(--ink)}
+.pvrow{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.8rem}
+.pvrow .btn{font-size:.85rem;padding:.3rem .85rem}
+.pv{margin-top:.9rem;padding:.8rem .9rem .6rem;border:1px solid var(--line);border-radius:.5rem;background:var(--surface)}
+.pv .strip{height:2rem}
+.pv ol.pvtl{list-style:none;margin:.7rem 0 0;padding:0;max-height:15rem;overflow-y:auto;font-size:.88rem}
+.pv ol.pvtl li{display:grid;grid-template-columns:4rem minmax(0,1fr);gap:.6rem;padding:.2rem 0;border-bottom:1px solid var(--line)}
+.pv ol.pvtl li.now{background:linear-gradient(90deg,var(--haze),transparent)}
+.pv ol.pvtl .ts{font-size:.82rem}
 .pick blockquote.q{margin:.6rem 0 0;padding-left:.8rem;border-left:2px solid var(--glow);font-style:italic;color:var(--ink);max-width:60ch}
 details.desc{margin-top:.6rem;font-size:.9rem}
 details.desc summary{cursor:pointer;color:var(--glow)}
@@ -468,7 +476,9 @@ function route() {
   S.tab = tab;
   paintGh();
 }
-window.addEventListener('hashchange', function () { route(); window.scrollTo(0, 0); });
+window.addEventListener('hashchange', function () { route(); window.scrollTo(0, S.tab === 'ask' && S.askReturn ? S.askReturn.y : 0); });
+// Opening a mix from the search results remembers the spot, so "Back to search results" returns there.
+document.addEventListener('click', function (e) { if (e.target.closest('#askOut a[href^="#m-"]')) S.askReturn = { y: window.scrollY }; }, true);
 // A tab clicked while its address is already showing doesn't fire hashchange, so render it anyway.
 document.addEventListener('click', function (e) {
   var a = e.target.closest('nav.tabs a[href^="#"]');
@@ -633,7 +643,7 @@ function renderMix(main, slug, at) {
   var links = (m.links || []).filter(function (l) { return okUrl(l.url); });
   var ai = m.ai && m.ai.summary ? '<section class="sect"><h2 class="spaced">I n &nbsp; s h o r t</h2><div class="mood"><p style="margin:0">' + h(m.ai.summary) + '</p>' + ([m.ai.primaryMood].concat(m.ai.moodTags || []).filter(Boolean).length ? '<div class="tags">' + [m.ai.primaryMood].concat(m.ai.moodTags || []).filter(Boolean).map(function (x) { return '<span>' + h(x) + '</span>'; }).join('') + '</div>' : '') + '<p class="note">Claude’s summary of the post, used by Ask to search. It hasn’t heard the mix.</p></div></section>' : '';
 
-  main.innerHTML = '<section class="view" aria-label="' + h(m.title) + '"><a class="back" href="#mixes">← All mixes</a>' +
+  main.innerHTML = '<section class="view" aria-label="' + h(m.title) + '">' + (S.askReturn && S.ask && S.ask.picks ? '<a class="back" href="#ask">← Back to search results</a> &nbsp;·&nbsp; ' : '') + '<a class="back" href="#mixes">← All mixes</a>' +
     '<div class="mixhead">' + coverHtml(m, true) + '<div><p class="spaced">' + h((m.published || '').slice(0, 4).split('').join(' ')) + '</p><h1>' + h(m.title) + '</h1><div class="facts">' + facts.map(function (f) { return '<span>' + h(f) + '</span>'; }).join('') + '</div>' +
     (m.labels.length ? '<div class="labels">' + m.labels.map(function (l) { return '<a href="#label-' + h(l.replace(/\s+/g, '-')) + '">' + h(l) + '</a>'; }).join('') + '</div>' : '') +
     '<div class="actions" id="acts">' + acts.join('') + '</div></div></div>' +
@@ -829,6 +839,12 @@ var Player = {
       document.querySelectorAll('#strip .seg').forEach(function (b) { b.classList.toggle('now', t && +b.dataset.sec === t.sec); });
       var hd = $('head'); if (hd && m._end) { hd.hidden = false; hd.style.left = Math.min(100, this.pos / m._end * 100) + '%'; }
     }
+    var pos = this.pos;
+    document.querySelectorAll('#askOut .pvs[data-slug="' + m.slug + '"]').forEach(function (st) {
+      st.querySelectorAll('.seg').forEach(function (b) { b.classList.toggle('now', !!t && +b.dataset.sec === t.sec); });
+      var hd2 = st.querySelector('.head'); if (hd2 && m._end) { hd2.hidden = false; hd2.style.left = Math.min(100, pos / m._end * 100) + '%'; }
+      var tl2 = st.parentNode.querySelector('ol.pvtl'); if (tl2) tl2.querySelectorAll('li').forEach(function (li) { li.classList.toggle('now', +li.dataset.i === cur); });
+    });
   },
   // Albums named in posts play in Bandcamp's own embedded player (press play inside it).
   openBc: function (m, i) {
@@ -1272,6 +1288,60 @@ function moreRow(x, why) {
   var t = x.t;
   return '<li>' + tsLink(x.m, t) + '<div><span class="who">' + h(t.artist || '') + '</span>' + (t.artist ? ' – ' : '') + '<span class="what">' + h(t.title || '') + '</span><span class="alb">in <a href="' + h(mixHash(x.m, t.sec)) + '">' + h(x.m.title) + '</a> · ' + h(String(x.m.published || '').slice(0, 4)) + '</span>' + (why ? '<span class="why2">' + h(why) + '</span>' : '') + '</div><span class="rowacts">' + moreBtn(x.m, x.i, true) + likeBtn(t, x.i).replace('<button type="button" class="like"', '<button type="button" class="like" data-s="' + h(x.m.slug) + '"') + '</span></li>';
 }
+// ------------------------------------------------------------ preview in the search results
+function pvOpen(m) { return !!(S.ask && S.ask.pv && S.ask.pv[m.slug]); }
+function pvActions(m) {
+  var open = pvOpen(m);
+  return '<div class="pvrow"><button type="button" class="btn' + (open ? '' : ' primary') + '" data-pv="' + h(m.slug) + '" aria-expanded="' + open + '">' + (open ? '▾ Hide preview' : '▸ Preview &amp; play') + '</button><a class="btn" href="' + h(mixHash(m)) + '">Open full page →</a></div>' + (open ? pvHtml(m) : '');
+}
+function pvHtml(m) {
+  var end = m._end, timed = m.tracks.filter(function (t) { return t.sec != null; }), out = '<div class="pv">';
+  if (timed.length >= 2 && end) {
+    var lead = timed[0].sec > 0 ? timed[0].sec : 0;
+    out += '<div class="strip pvs" data-slug="' + h(m.slug) + '" role="group" aria-label="Time strip of ' + h(m.title) + ': click to play from that spot">' +
+      (lead ? '<button type="button" class="seg gap" data-sec="0" style="width:' + (lead / end * 100).toFixed(3) + '%" aria-label="00:00 before the first listed track"></button>' : '') +
+      timed.map(function (t, i) {
+        var nx = i + 1 < timed.length ? timed[i + 1].sec : end;
+        return '<button type="button" class="seg" data-sec="' + t.sec + '" style="width:' + (Math.max(0, nx - t.sec) / end * 100).toFixed(3) + '%;--k:' + (18 + (i % 2) * 14) + '" aria-label="' + h(fmt(t.sec) + ' ' + [t.artist, t.title].filter(Boolean).join(', ')) + '"></button>';
+      }).join('') + '<span class="head" hidden></span></div>' +
+      '<div class="ticks"><span>00:00</span><span>' + fmt(end / 2) + '</span><span>' + fmt(end) + '</span></div>';
+  } else out += '<p class="note" style="margin:0">No timed tracklist for this mix' + (STANDALONE ? '; ▶ plays it from the start.' : '.') + '</p>';
+  if (m.tracks.length) out += '<ol class="pvtl">' + m.tracks.map(function (t, i) {
+    var time = t.sec == null ? '<span class="ts">' + h(t.t || '·') + '</span>' : (STANDALONE ? '<button type="button" class="ts" data-pvsec="' + t.sec + '">' + h(fmt(t.sec)) + '</button>' : tsLink(m, t));
+    return '<li data-i="' + i + '">' + time + '<span><span class="who">' + h(t.artist || '') + '</span>' + (t.artist ? ' – ' : '') + h(t.title || '') + '</span></li>';
+  }).join('') + '</ol>';
+  var pl = playerLink(m);
+  out += '<p class="note" style="margin:.6rem 0 0">' + (STANDALONE ? 'Click the bar or a time to play from there (double-click: that track from its start). It plays in the bar at the bottom; your results stay here.' : (pl ? 'Click the bar or a time: the player opens in a new tab at that spot, and your results stay here.' : '')) + '</p></div>';
+  return out;
+}
+function pvSec(st, m, e) { var r = st.getBoundingClientRect(); if (!r.width || !m._end) return null; return Math.round(Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * m._end); }
+function pvPlay(m, sec) {
+  if (STANDALONE) { Player.open(m, null, sec); return; }
+  var pl = playerLink(m, sec); if (pl) window.open(pl, '_blank', 'noopener'); else toast('The player copy isn’t set up yet (see About).');
+}
+document.addEventListener('click', function (e) {
+  var out = e.target.closest('#askOut'); if (!out) return;
+  var b = e.target.closest('[data-pv]');
+  if (b) { S.ask.pv = S.ask.pv || {}; S.ask.pv[b.dataset.pv] = !S.ask.pv[b.dataset.pv]; drawAsk(); if (typeof Player !== 'undefined' && Player.mix) Player.paint(); return; }
+  var ts = e.target.closest('[data-pvsec]');
+  if (ts) { var mt = S.bySlug[ts.closest('.pick').querySelector('[data-pv]').dataset.pv]; if (mt) pvPlay(mt, +ts.dataset.pvsec); return; }
+  var seg = e.target.closest('.pvs .seg');
+  if (seg) {
+    var st = seg.closest('.pvs'), m = S.bySlug[st.dataset.slug]; if (!m) return;
+    e.preventDefault(); clearTimeout(S._pvT);
+    var start = +seg.dataset.sec;
+    if (!e.detail || e.detail >= 2) { pvPlay(m, start); return; }
+    var spot = pvSec(st, m, e); if (spot == null) spot = start;
+    S._pvT = setTimeout(function () { pvPlay(m, spot); }, 260);
+  }
+});
+document.addEventListener('mousemove', function (e) {
+  var st = e.target.closest && e.target.closest('#askOut .pvs');
+  if (!st) { if (S._pvTip) { S._pvTip = false; hideTip(); } return; }
+  var m = S.bySlug[st.dataset.slug], sec = m && pvSec(st, m, e); if (sec == null) return;
+  var t3 = null; m.tracks.forEach(function (t) { if (t.sec != null && t.sec <= sec) t3 = t; });
+  S._pvTip = true; showTip(fmt(sec) + (t3 ? '  ·  ' + [t3.artist, t3.title].filter(Boolean).join(' – ') : '  ·  before the first listed track'), e);
+});
 function moreMixHtml(r, why) {
   var m = r.m;
   return '<article class="pick"><a href="' + h(mixHash(m)) + '" tabindex="-1" aria-hidden="true">' + coverHtml(m) + '</a><div><h3><a href="' + h(mixHash(m)) + '">' + h(m.title) + '</a></h3><p class="note" style="margin-top:.2rem">' + h([String(m.published || '').slice(0, 4), dur(m._end), m.tracks.length + ' tracks', mark(m.slug).fav ? 'favourite' : '', mark(m.slug).heard ? 'heard' : ''].filter(Boolean).join(' · ')) + '</p><p class="why">' + h(why || r.why || '') + '</p></div></article>';
@@ -1544,7 +1614,7 @@ function drawAsk() {
       var m = p.m;
       return '<article class="pick"><a href="' + h(mixHash(m)) + '" tabindex="-1" aria-hidden="true">' + coverHtml(m) + '</a><div><h3><a href="' + h(mixHash(m)) + '">' + h(m.title) + '</a></h3><p class="note" style="margin-top:.2rem">' + h([String(m.published || '').slice(0, 4), dur(m._end), m.tracks.length ? m.tracks.length + ' tracks' : '', mark(m.slug).heard ? 'heard' : ''].filter(Boolean).join(' · ')) + '</p>' +
         '<p class="why">' + h(p.why) + '</p>' + (p.quote ? '<blockquote class="q">“' + h(p.quote) + '”</blockquote>' : '') + (p.caveat ? '<p class="note">' + h(p.caveat) + '</p>' : '') +
-        (m.intro ? '<details class="desc"><summary>Read the full description</summary><p>' + h(m.intro) + '</p></details>' : '') + '</div></article>';
+        pvActions(m) + (m.intro ? '<details class="desc"><summary>Read the full description</summary><p>' + h(m.intro) + '</p></details>' : '') + '</div></article>';
     }).join('') + '</div>' + (!busy && a.picks[0] && a.picks[0].ai ? '<p class="note" style="margin-top:1.4rem">Chosen by Claude after reading ' + (a.read || '') + ' full descriptions.</p>' : '') : '<p class="lede" style="margin-top:1.5rem">No mix mentions those words. Try a label like ambient, berlin school, folk or autumn.</p>');
 }
 
