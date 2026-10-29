@@ -1,6 +1,6 @@
 {
- "lastCheck": "2026-10-29T00:30:55Z",
- "lastOk": "2026-10-29T00:30:55Z",
+ "lastCheck": "2026-10-29T04:53:40Z",
+ "lastOk": "2026-10-29T04:53:40Z",
  "ok": true,
  "lastResult": "619 mixes on the blog, 0 new",
  "postsTotal": 619,
@@ -12,14 +12,15 @@
  "coversSaved": 0,
  "notes": [],
  "albums": {
-  "listed": 466,
-  "linked": 105,
-  "players": 45,
+  "listed": 462,
+  "linked": 196,
+  "players": 76,
   "lookedUpThisRun": 120,
-  "waiting": 301,
-  "errors": 66
+  "waiting": 174,
+  "errors": 0,
+  "errorSamples": []
  },
- "mixcloudCommentsRead": 17,
- "tracklistsFromMixcloudComments": 3,
+ "mixcloudCommentsRead": 13,
+ "tracklistsFromMixcloudComments": 2,
  "mixcloudCommentErrors": []
 }
