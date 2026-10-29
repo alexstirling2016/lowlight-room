@@ -118,7 +118,8 @@ def parse_html(content):
 
 
 # ---------------------------------------------------------------- tracklists
-TS = r"(\d{1,3}:\d{2}(?::\d{2})?)(?:[:.]\d{3})?"  # milliseconds ("4:00:000") are read and dropped
+# Times may use colons or apostrophes ("06'00", "1'00'50", also ′ and ’).
+TS = r"(\d{1,3}[:'′’]\d{2}(?:[:'′’]\d{2})?)(?:[:.]\d{3})?"  # milliseconds ("4:00:000") are read and dropped
 # A running number or bullet may come first: "01) 00:00 Artist - Title", "1. 0:00 ...", "- 08:17 ...".
 TS_LINE = re.compile(r"^(?:\d{1,3}[.)]\s*|[-•⦁·▪◦*]\s*)?" + TS + r"(?:\s*[-–—]\s*" + TS + r")?\s*[-–—:.]?\s+(.+)$")
 NUM_LINE = re.compile(r"^(\d{1,2})[.)]\s+(.+\s[-–—]\s.+)$")
@@ -130,7 +131,7 @@ YEAR_PAREN = re.compile(r"\(([^()]*?)\s*((?:19|20)\d{2})\s*\)\s*$")
 def secs(ts):
     if not ts:
         return None
-    n = [int(x) for x in ts.split(":")]
+    n = [int(x) for x in re.split(r"[:'′’]", ts)]
     return n[0] * 3600 + n[1] * 60 + n[2] if len(n) == 3 else n[0] * 60 + n[1]
 
 
