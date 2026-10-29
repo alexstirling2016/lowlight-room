@@ -64,6 +64,9 @@ h1.v{font:400 clamp(1.9rem,4.6vw,2.7rem)/1.1 var(--display);margin:0 0 .5rem;tex
 .chips{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.4rem}
 .chip{background:none;border:1px solid var(--line);border-radius:999px;padding:.18rem .7rem;font-size:.85rem;color:var(--muted);cursor:pointer}
 .chip[aria-pressed="true"]{color:var(--ink);border-color:var(--glow);background:var(--surface)}
+.chip.fav{color:var(--glow);border-color:var(--glow)}
+.chip.fav[aria-pressed="true"]{background:var(--glow);color:var(--glow-ink)}
+.chip.fav[aria-pressed="true"] em{color:var(--glow-ink)}
 .chip em{font-style:normal;color:var(--muted);font-size:.75rem;margin-left:.3rem;font-variant-numeric:tabular-nums}
 .count{font-size:.88rem;color:var(--muted);margin:0 0 1rem}
 
@@ -517,6 +520,7 @@ function matches(m, q) {
 function filtered() {
   var out = [];
   S.mixes.forEach(function (m) {
+    if (S.favOnly && !mark(m.slug).fav) return;
     if (S.label && m.labels.indexOf(S.label) < 0) return;
     if (S.year && String(m.published || '').slice(0, 4) !== S.year) return;
     var r = matches(m, S.q); if (!r.ok) return;
@@ -545,25 +549,25 @@ function renderMixes(main) {
   if (!S.mixes.length) { main.innerHTML = '<section class="view">' + emptyState() + '</section>'; return; }
   var latest = S.mixes[0];
   var years = {}; S.mixes.forEach(function (m) { var y = String(m.published || '').slice(0, 4); if (y) years[y] = (years[y] || 0) + 1; });
-  var browsing = S.q || S.label || S.year;
+  var browsing = S.q || S.label || S.year || S.favOnly;
   main.innerHTML = '<section class="view">' +
     (browsing ? '' : '<div class="hero">' + '<a href="' + h(mixHash(latest)) + '" tabindex="-1" aria-hidden="true">' + coverHtml(latest, true) + '</a><div><p class="spaced">L a t e s t &nbsp; m i x</p><h2><a href="' + h(mixHash(latest)) + '">' + h(latest.title) + '</a></h2><p>' + h(dateStr(latest.published)) + (latest.tracks.length ? ' · ' + latest.tracks.length + ' tracks' : '') + (latest._end ? ' · ' + dur(latest._end) : '') + '</p><p>' + h((latest.intro || '').split('\n')[0].slice(0, 220)) + '</p><div class="actions"><a class="btn primary" href="' + h(mixHash(latest)) + '">Open the tracklist</a></div></div></div>') +
     '<div class="filters"><label class="sr" for="q">Search mixes, artists and tracks</label><input type="search" id="q" placeholder="Search ' + S.mixes.length + ' mixes, artists, tracks…" value="' + h(S.q) + '">' +
     '<label class="sr" for="yr">Year</label><select id="yr"><option value="">All years</option>' + Object.keys(years).sort().reverse().map(function (y) { return '<option value="' + y + '"' + (S.year === y ? ' selected' : '') + '>' + y + ' (' + years[y] + ')</option>'; }).join('') + '</select>' +
     '<label class="sr" for="srt">Order</label><select id="srt"><option value="new">Newest first</option><option value="old">Oldest first</option><option value="long">Longest first</option><option value="plays">Most played on Mixcloud</option></select></div>' +
-    '<div class="chips" id="chips">' + topLabels().map(function (l) { return '<button type="button" class="chip" data-label="' + h(l[0]) + '" aria-pressed="' + (S.label === l[0]) + '">' + h(l[0]) + '<em>' + l[1] + '</em></button>'; }).join('') + '</div>' +
+    '<div class="chips" id="chips">' + (function () { var n = S.mixes.filter(function (m) { return mark(m.slug).fav; }).length; return '<button type="button" class="chip fav" id="favOnly" aria-pressed="' + !!S.favOnly + '" title="' + (n ? 'Only the mixes you marked as favourites' : 'Mark a mix as a favourite from its page') + '">♥ My favourites<em>' + n + '</em></button>'; })() + topLabels().map(function (l) { return '<button type="button" class="chip" data-label="' + h(l[0]) + '" aria-pressed="' + (S.label === l[0]) + '">' + h(l[0]) + '<em>' + l[1] + '</em></button>'; }).join('') + '</div>' +
     '<p class="count" id="cnt"></p><div class="grid" id="grid"></div><button type="button" class="more" id="more" hidden>Show more</button></section>';
   $('srt').value = S.sort;
   drawGrid();
   $('q').addEventListener('input', function () { S.q = this.value.trim(); S.shown = 48; drawGrid(); });
   $('yr').addEventListener('change', function () { S.year = this.value; S.shown = 48; drawGrid(); });
   $('srt').addEventListener('change', function () { S.sort = this.value; drawGrid(); });
-  $('chips').addEventListener('click', function (e) { var b = e.target.closest('[data-label]'); if (!b) return; S.label = S.label === b.dataset.label ? '' : b.dataset.label; S.shown = 48; renderMixes(main); });
+  $('chips').addEventListener('click', function (e) { if (e.target.closest('#favOnly')) { S.favOnly = !S.favOnly; S.shown = 48; renderMixes(main); return; } var b = e.target.closest('[data-label]'); if (!b) return; S.label = S.label === b.dataset.label ? '' : b.dataset.label; S.shown = 48; renderMixes(main); });
   $('more').addEventListener('click', function () { S.shown += 48; drawGrid(); });
 }
 function drawGrid() {
   var list = filtered();
-  $('cnt').textContent = (S.q || S.label || S.year) ? list.length + (list.length === 1 ? ' mix' : ' mixes') + (S.label ? ' labelled ' + S.label : '') + (S.year ? ' from ' + S.year : '') + (S.q ? ' matching “' + S.q + '”' : '') : S.mixes.length + ' mixes, ' + S.mixes.filter(function (m) { return m.tracks.length; }).length + ' with tracklists';
+  $('cnt').textContent = (S.q || S.label || S.year || S.favOnly) ? list.length + (S.favOnly ? ' favourite' : '') + (list.length === 1 ? ' mix' : ' mixes') + (S.label ? ' labelled ' + S.label : '') + (S.year ? ' from ' + S.year : '') + (S.q ? ' matching “' + S.q + '”' : '') : S.mixes.length + ' mixes, ' + S.mixes.filter(function (m) { return m.tracks.length; }).length + ' with tracklists';
   $('grid').innerHTML = list.slice(0, S.shown).map(function (r) { return cardHtml(r.m, r.hits); }).join('') || '<p class="lede">Nothing matches. Try fewer words, or clear the label.</p>';
   $('more').hidden = list.length <= S.shown;
 }
