@@ -187,7 +187,8 @@ def parse_albums(lines):
             if len(run) < 3 and not m.group("y"):
                 continue
             artist, album = m.group("a").strip(" -"), clean_album(m.group("b"), m.group("a"))
-            if not album:
+            # "#2 - what I loved about it": a ranking comment, not an album
+            if not album or re.fullmatch(r"#\s*\d{1,3}\.?", artist):
                 continue
             key = squash(artist) + "|" + squash(album)
             if not squash(artist) or not squash(album) or key in seen:
