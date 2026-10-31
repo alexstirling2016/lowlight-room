@@ -1,6 +1,6 @@
 {
- "lastCheck": "2026-10-30T04:53:43Z",
- "lastOk": "2026-10-30T04:53:43Z",
+ "lastCheck": "2026-10-31T04:51:34Z",
+ "lastOk": "2026-10-31T04:51:34Z",
  "ok": true,
  "lastResult": "619 mixes on the blog, 0 new",
  "postsTotal": 619,
@@ -13,10 +13,10 @@
  "notes": [],
  "albums": {
   "listed": 462,
-  "linked": 247,
-  "players": 88,
-  "lookedUpThisRun": 120,
-  "waiting": 54,
+  "linked": 268,
+  "players": 95,
+  "lookedUpThisRun": 54,
+  "waiting": 0,
   "errors": 0,
   "errorSamples": []
  },

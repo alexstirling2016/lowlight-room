@@ -44,6 +44,11 @@
 "kind": null,
 "url": null
 },
+"adrianklumpes|bestill": {
+"checked": "2026-10-31T04:59:47Z",
+"kind": null,
+"url": null
+},
 "aliodieparallelworlds|circodivino": {
 "checked": "2026-10-30T05:12:25Z",
 "kind": "bandcamp-artist",
@@ -123,6 +128,11 @@
 "kind": "bandcamp-artist",
 "url": "https://andrewbird.bandcamp.com/"
 },
+"andrewchalk|goldfall": {
+"checked": "2026-10-31T04:57:51Z",
+"kind": "bandcamp-artist",
+"url": "https://andrewchalk.bandcamp.com/"
+},
 "andystott|luxuryproblems": {
 "checked": "2026-10-30T05:04:44Z",
 "kind": null,
@@ -171,6 +181,11 @@
 "kind": "bandcamp-artist",
 "url": "https://asc77.bandcamp.com/"
 },
+"asilvermountzion|bornintotroubleasthesparksflyupward": {
+"checked": "2026-10-31T04:55:17Z",
+"kind": null,
+"url": null
+},
 "autechre|amber": {
 "checked": "2026-10-30T05:15:50Z",
 "kind": "bandcamp-artist",
@@ -185,6 +200,11 @@
 "checked": "2026-10-29T05:12:44Z",
 "kind": "bandcamp-artist",
 "url": "https://awvfts.bandcamp.com/"
+},
+"badmammal|sendingandtaking": {
+"checked": "2026-10-31T04:55:08Z",
+"kind": null,
+"url": null
 },
 "beachhouse|7": {
 "bc": {
@@ -306,6 +326,11 @@
 "kind": "post",
 "url": "https://soundcloud.com/warp-records/reach-for-the-dead"
 },
+"bohrenderclubofgore|dolore": {
+"checked": "2026-10-31T04:56:19Z",
+"kind": null,
+"url": null
+},
 "boniver|boniver": {
 "checked": "2026-10-29T00:24:53Z",
 "kind": "bandcamp-artist",
@@ -325,6 +350,11 @@
 "checked": "2026-10-29T00:28:51Z",
 "kind": "bandcamp-artist",
 "url": "https://bonobomusic.bandcamp.com/"
+},
+"boxheadensemble|nocturnes": {
+"checked": "2026-10-31T05:00:18Z",
+"kind": null,
+"url": null
 },
 "brandycarlile|thejoke": {
 "checked": "2026-10-29T00:39:00Z",
@@ -375,6 +405,16 @@
 "kind": null,
 "url": null
 },
+"burial|burial": {
+"checked": "2026-10-31T04:57:17Z",
+"kind": "bandcamp-artist",
+"url": "https://burial.bandcamp.com/"
+},
+"bvdub|dreamsofredchambers": {
+"checked": "2026-10-31T04:55:26Z",
+"kind": null,
+"url": null
+},
 "calibro35|said": {
 "checked": "2026-10-29T00:30:16Z",
 "kind": "post",
@@ -387,6 +427,11 @@
 },
 "campcope|howtosocializemakefriends": {
 "checked": "2026-10-29T00:29:01Z",
+"kind": null,
+"url": null
+},
+"ceptual|shiftspersonal": {
+"checked": "2026-10-31T04:58:09Z",
 "kind": null,
 "url": null
 },
@@ -409,6 +454,11 @@
 "kind": "bandcamp-artist",
 "url": "https://christopherwillits.bandcamp.com/"
 },
+"christopherwillits|surfboundries": {
+"checked": "2026-10-31T04:57:06Z",
+"kind": null,
+"url": null
+},
 "cigarettesaftersex|cigarettesaftersex": {
 "bc": {
 "id": 3513368987,
@@ -426,6 +476,11 @@
 "checked": "2026-10-29T00:29:06Z",
 "kind": "bandcamp",
 "url": "https://cigarettesaftersex.bandcamp.com/track/k"
+},
+"clintmansellmogwai|thefountainsoundtrack": {
+"checked": "2026-10-31T04:57:53Z",
+"kind": null,
+"url": null
 },
 "cloudnothings|stayuseless": {
 "checked": "2026-10-29T00:29:09Z",
@@ -554,6 +609,15 @@
 "kind": null,
 "url": null
 },
+"davidtagg|waistdeepseasofmilk": {
+"bc": {
+"id": 1570873814,
+"type": "album"
+},
+"checked": "2026-10-31T04:55:33Z",
+"kind": "bandcamp",
+"url": "https://davidtagg.bandcamp.com/album/waist-deep-seas-of-milk"
+},
 "dawes|allyourfavoritebands": {
 "checked": "2026-10-29T05:03:53Z",
 "kind": "bandcamp-artist",
@@ -563,6 +627,16 @@
 "checked": "2026-10-29T05:09:41Z",
 "kind": null,
 "url": null
+},
+"deafcenter|levende": {
+"checked": "2026-10-31T04:59:24Z",
+"kind": "bandcamp-artist",
+"url": "https://deafcenter.bandcamp.com/"
+},
+"deafcenter|vintagewell": {
+"checked": "2026-10-31T04:55:41Z",
+"kind": "bandcamp-artist",
+"url": "https://deafcenter.bandcamp.com/"
 },
 "decemberists|bemygirl": {
 "checked": "2026-10-29T05:08:56Z",
@@ -635,6 +709,11 @@
 "kind": null,
 "url": null
 },
+"disturbedearth|butterfly": {
+"checked": "2026-10-31T04:55:43Z",
+"kind": null,
+"url": null
+},
 "divinefits|athingcalleddivinefits": {
 "checked": "2026-10-30T05:08:07Z",
 "kind": null,
@@ -674,8 +753,18 @@
 "kind": "post",
 "url": "http://player.ecmrecords.com/eivind_aarset-dream_logic"
 },
+"elbowtheseldomseenkid|thereisntanyotherbandthatevokesbeautymelancholyjoylikeelbowthisisanabsolutelyfantasticrecording": {
+"checked": "2026-10-31T04:55:51Z",
+"kind": null,
+"url": null
+},
 "elbow|deadintheboot": {
 "checked": "2026-10-30T05:06:50Z",
+"kind": null,
+"url": null
+},
+"elbow|livefromlondon": {
+"checked": "2026-10-31T04:55:49Z",
 "kind": null,
 "url": null
 },
@@ -686,6 +775,16 @@
 },
 "elephantrevival|spinning": {
 "checked": "2026-10-29T00:29:37Z",
+"kind": null,
+"url": null
+},
+"eluderthemostbeautifulblue|deeplayersthatnevergettoodarkortoolightajustrightmixtureofdriftingtexturesaquaticsounds": {
+"checked": "2026-10-31T04:55:52Z",
+"kind": null,
+"url": null
+},
+"emanueleerrante|humus": {
+"checked": "2026-10-31T04:56:50Z",
 "kind": null,
 "url": null
 },
@@ -780,6 +879,11 @@
 "kind": "bandcamp",
 "url": "https://fontainesdc.bandcamp.com/album/dogrel"
 },
+"forestfangcarlweingarten|invisibilty": {
+"checked": "2026-10-31T04:57:40Z",
+"kind": null,
+"url": null
+},
 "forrestfang|animism": {
 "bc": {
 "id": 1655850428,
@@ -847,6 +951,21 @@
 "kind": "bandcamp",
 "url": "https://geotic.bandcamp.com/album/traversa"
 },
+"glint|soundinsilence": {
+"checked": "2026-10-31T04:55:15Z",
+"kind": null,
+"url": null
+},
+"greenkingdom|luckybamboo": {
+"checked": "2026-10-31T05:00:19Z",
+"kind": null,
+"url": null
+},
+"greghaines|slumbertides": {
+"checked": "2026-10-31T05:00:12Z",
+"kind": null,
+"url": null
+},
 "gregoryalanisakov|suitcasefullofsparks": {
 "checked": "2026-10-29T00:39:10Z",
 "kind": null,
@@ -857,15 +976,44 @@
 "kind": null,
 "url": null
 },
+"grouper|draggingadeaddeerupahill": {
+"checked": "2026-10-31T04:56:05Z",
+"kind": "bandcamp-artist",
+"url": "https://grouper.bandcamp.com/"
+},
 "grouplove|tonguetied": {
 "checked": "2026-10-29T05:04:12Z",
 "kind": null,
 "url": null
 },
+"hakobune|meltingreminscence": {
+"checked": "2026-10-31T04:56:07Z",
+"kind": null,
+"url": null
+},
+"halma|backtopascal": {
+"checked": "2026-10-31T04:58:15Z",
+"kind": "bandcamp-artist",
+"url": "https://halma.bandcamp.com/"
+},
+"hammock|raisingyourvoice": {
+"checked": "2026-10-31T05:00:06Z",
+"kind": "bandcamp-artist",
+"url": "https://hammock.bandcamp.com/"
+},
 "hardwell|spaceman": {
 "checked": "2026-10-29T00:39:18Z",
 "kind": null,
 "url": null
+},
+"helios|eingya": {
+"bc": {
+"id": 1346635658,
+"type": "album"
+},
+"checked": "2026-10-31T04:57:45Z",
+"kind": "bandcamp",
+"url": "https://heliosmusic.bandcamp.com/album/eingya"
 },
 "herion|outabout": {
 "checked": "2026-10-29T00:30:19Z",
@@ -968,10 +1116,33 @@
 "kind": "bandcamp",
 "url": "https://japandroids.bandcamp.com/album/the-house-that-heaven-built"
 },
+"jaspertx|thisquietseason": {
+"checked": "2026-10-31T04:56:40Z",
+"kind": null,
+"url": null
+},
 "jethrotull|aqualung": {
 "checked": "2026-10-30T04:58:34Z",
 "kind": null,
 "url": null
+},
+"joannanewsom|ys": {
+"bc": {
+"id": 1147577978,
+"type": "album"
+},
+"checked": "2026-10-31T04:59:06Z",
+"kind": "bandcamp",
+"url": "https://joannanewsom.bandcamp.com/album/ys"
+},
+"johannjohannsson|ibm1401": {
+"bc": {
+"id": 1216537719,
+"type": "album"
+},
+"checked": "2026-10-31T04:58:20Z",
+"kind": "bandcamp",
+"url": "https://johannjohannsson.bandcamp.com/album/ibm-1401-a-users-manual"
 },
 "johnadams|harmonielehre": {
 "checked": "2026-10-30T05:04:21Z",
@@ -1194,6 +1365,11 @@
 "kind": "bandcamp-artist",
 "url": "https://lordhuron.bandcamp.com/"
 },
+"lorenconnors|nightthroughsinglescollectedworks": {
+"checked": "2026-10-31T04:58:35Z",
+"kind": null,
+"url": null
+},
 "losbitchos|letthefestivitiesbegin": {
 "bc": {
 "id": 4021857915,
@@ -1202,6 +1378,15 @@
 "checked": "2026-10-29T00:36:46Z",
 "kind": "bandcamp",
 "url": "https://losbitchos.bandcamp.com/album/let-the-festivities-begin"
+},
+"loscil|plume": {
+"bc": {
+"id": 1989181575,
+"type": "album"
+},
+"checked": "2026-10-31T04:58:26Z",
+"kind": "bandcamp",
+"url": "https://loscil.bandcamp.com/album/plume"
 },
 "loscil|seaisland": {
 "bc": {
@@ -1328,6 +1513,11 @@
 "checked": "2026-10-29T00:30:03Z",
 "kind": "post",
 "url": "http://oktaf.bandcamp.com/album/pr-sence-acousmatique"
+},
+"marsenjules|lesfluers": {
+"checked": "2026-10-31T04:58:29Z",
+"kind": null,
+"url": null
 },
 "matisyahu|oneday": {
 "checked": "2026-10-30T05:10:53Z",
@@ -1499,6 +1689,11 @@
 "kind": null,
 "url": null
 },
+"northsearamesesiii|nightoftheankou": {
+"checked": "2026-10-31T04:59:42Z",
+"kind": null,
+"url": null
+},
 "oddisee|thatslove": {
 "checked": "2026-10-29T00:40:19Z",
 "kind": null,
@@ -1562,6 +1757,11 @@
 "kind": null,
 "url": null
 },
+"paulsimon|surprise": {
+"checked": "2026-10-31T04:59:02Z",
+"kind": "bandcamp-artist",
+"url": "https://paulsimon.bandcamp.com/"
+},
 "pausal|lapses": {
 "checked": "2026-10-30T05:13:33Z",
 "kind": "bandcamp-artist",
@@ -1591,6 +1791,11 @@
 "checked": "2026-10-29T05:15:19Z",
 "kind": "bandcamp-artist",
 "url": "https://phantogram.bandcamp.com/"
+},
+"phelansheppard|harpsoldmaster": {
+"checked": "2026-10-31T04:59:52Z",
+"kind": null,
+"url": null
 },
 "philipjeck|7": {
 "checked": "2026-10-30T05:14:24Z",
@@ -1705,6 +1910,20 @@
 "kind": null,
 "url": null
 },
+"rf|viewsofdistanttowns": {
+"checked": "2026-10-31T04:57:05Z",
+"kind": null,
+"url": null
+},
+"richardskelton|markingtime": {
+"bc": {
+"id": 3206175072,
+"type": "album"
+},
+"checked": "2026-10-31T04:56:57Z",
+"kind": "bandcamp",
+"url": "https://aeolian.bandcamp.com/album/the-complete-marking-time"
+},
 "rivalconsoles|persona": {
 "bc": {
 "id": 3340619266,
@@ -1739,6 +1958,11 @@
 "kind": null,
 "url": null
 },
+"ryanteague|coinscrosses": {
+"checked": "2026-10-31T04:58:34Z",
+"kind": null,
+"url": null
+},
 "saffronkeiramariomassa|causeandeffect": {
 "checked": "2026-10-29T00:30:05Z",
 "kind": "post",
@@ -1757,6 +1981,11 @@
 "checked": "2026-10-30T05:13:46Z",
 "kind": "bandcamp",
 "url": "https://lineimprint.bandcamp.com/album/twin-radiant-flux"
+},
+"scottsolter|oneriver": {
+"checked": "2026-10-31T04:57:29Z",
+"kind": null,
+"url": null
 },
 "sethavettjessicaleamayfield|fondfarewell": {
 "checked": "2026-10-29T00:41:00Z",
@@ -1844,6 +2073,11 @@
 "kind": null,
 "url": null
 },
+"stephanmathieu|radioland": {
+"checked": "2026-10-31T04:56:12Z",
+"kind": null,
+"url": null
+},
 "stevereich|doublesextet2x5": {
 "checked": "2026-10-30T05:11:24Z",
 "kind": null,
@@ -1912,6 +2146,11 @@
 "kind": "post",
 "url": "http://reviews.headphonecommute.com/2010/11/01/subheim-headphone-commute-mix/"
 },
+"sufjanstevens|avalanche": {
+"checked": "2026-10-31T04:59:18Z",
+"kind": "bandcamp-artist",
+"url": "https://sufjanstevens.bandcamp.com/"
+},
 "sufjanstevens|bluebucketofgold": {
 "checked": "2026-10-29T05:07:39Z",
 "kind": "bandcamp-artist",
@@ -1939,6 +2178,11 @@
 },
 "sunkilmoon|sunshineinchicago": {
 "checked": "2026-10-29T00:41:16Z",
+"kind": null,
+"url": null
+},
+"svalastog|woodwork": {
+"checked": "2026-10-31T04:58:05Z",
 "kind": null,
 "url": null
 },
@@ -1982,6 +2226,16 @@
 "kind": "bandcamp-artist",
 "url": "https://tangerinedream.bandcamp.com/"
 },
+"taylordeupree|northern": {
+"checked": "2026-10-31T04:59:32Z",
+"kind": "bandcamp-artist",
+"url": "https://taylordeupree.bandcamp.com/"
+},
+"taylordeupree|sealast": {
+"checked": "2026-10-31T04:56:24Z",
+"kind": "bandcamp-artist",
+"url": "https://taylordeupree.bandcamp.com/"
+},
 "taylowdeupree|faint": {
 "checked": "2026-10-30T05:02:20Z",
 "kind": null,
@@ -1995,6 +2249,11 @@
 "checked": "2026-10-29T00:30:05Z",
 "kind": "post",
 "url": "http://tessellaterecordings.bandcamp.com/album/earthtones"
+},
+"thealpharhythm|proofofconcept": {
+"checked": "2026-10-31T04:54:50Z",
+"kind": null,
+"url": null
 },
 "theantlers|familiars": {
 "bc": {
@@ -2043,6 +2302,16 @@
 "kind": "bandcamp",
 "url": "https://thebethsnz.bandcamp.com/album/expert-in-a-dying-field"
 },
+"thecaretaker|recollectedmemoriesfromthemuseumofgardenhistory": {
+"checked": "2026-10-31T04:56:45Z",
+"kind": "bandcamp-artist",
+"url": "https://thecaretaker.bandcamp.com/"
+},
+"thecinematicorchestra|motion": {
+"checked": "2026-10-31T04:54:59Z",
+"kind": "bandcamp-artist",
+"url": "https://cinematicorchestramusic.bandcamp.com/"
+},
 "thecircularruins|fullcircle": {
 "bc": {
 "id": 2597443940,
@@ -2066,6 +2335,11 @@
 "checked": "2026-10-30T05:15:54Z",
 "kind": null,
 "url": null
+},
+"thegentlemanlosers|thegentlemanlosers": {
+"checked": "2026-10-31T04:58:47Z",
+"kind": "bandcamp-artist",
+"url": "https://thegentlemanlosers.bandcamp.com/"
 },
 "thegreenkingdom|dustloopsmemoryfragments": {
 "checked": "2026-10-29T00:30:05Z",
@@ -2099,6 +2373,15 @@
 "checked": "2026-10-29T04:59:09Z",
 "kind": "bandcamp",
 "url": "https://thenational.bandcamp.com/album/trouble-will-find-me"
+},
+"thenecks|chemist": {
+"bc": {
+"id": 1380444705,
+"type": "album"
+},
+"checked": "2026-10-31T04:57:59Z",
+"kind": "bandcamp",
+"url": "https://thenecks2.bandcamp.com/album/chemist"
 },
 "thepolice|outlandosdamour": {
 "checked": "2026-10-30T04:59:28Z",
@@ -2139,6 +2422,11 @@
 "kind": "bandcamp",
 "url": "https://thewarondrugs.bandcamp.com/album/lost-in-the-dream"
 },
+"thewinterhouse|lost": {
+"checked": "2026-10-31T04:56:29Z",
+"kind": null,
+"url": null
+},
 "thexx|coexist": {
 "checked": "2026-10-30T05:06:41Z",
 "kind": null,
@@ -2162,6 +2450,11 @@
 "checked": "2026-10-29T00:29:46Z",
 "kind": "post",
 "url": "http://tonepoet.bandcamp.com/album/headspace"
+},
+"triosk|theheadlightserenade": {
+"checked": "2026-10-31T04:57:39Z",
+"kind": null,
+"url": null
 },
 "vampireweekend|contra": {
 "checked": "2026-10-29T04:58:09Z",
@@ -2282,5 +2575,10 @@
 "checked": "2026-10-29T00:36:03Z",
 "kind": "bandcamp-artist",
 "url": "https://yardact.bandcamp.com/"
+},
+"yellow6|thebeautifulseasonhaspast": {
+"checked": "2026-10-31T04:57:31Z",
+"kind": null,
+"url": null
 }
 }
