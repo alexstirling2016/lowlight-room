@@ -236,6 +236,19 @@ details.desc p{white-space:pre-line;color:var(--muted);max-width:64ch;margin:.5r
 .player .ctl button.plike:disabled{opacity:.4;cursor:default}
 .player .ctl a.psim{display:inline-flex;align-items:center;gap:.35rem;border:1px solid var(--line);border-radius:999px;padding:.2rem .7rem;font-size:.82rem;color:var(--muted);text-decoration:none;white-space:nowrap}
 .player .ctl a.psim:hover{color:var(--ink);border-color:var(--glow)}
+.player .ctl{align-items:center}
+.pvol{display:inline-flex;align-items:center;gap:.25rem;cursor:ns-resize;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:999px;padding:0 .2rem;color:var(--muted)}
+.pvol svg{width:1.9rem;height:1.9rem;display:block}
+.pvol .tr{fill:none;stroke:var(--line);stroke-width:3;stroke-linecap:round}
+.pvol .arc{fill:none;stroke:var(--glow);stroke-width:3;stroke-linecap:round}
+.pvol .cap{fill:var(--surface);stroke:var(--line);stroke-width:1}
+.pvol .ptr{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.pvol .pct{font-size:.75rem;min-width:1.7rem;font-variant-numeric:tabular-nums}
+.pvol:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
+.pvol.off{cursor:help}
+.pvol.off .arc,.pvol.off .ptr{opacity:.35}
+.pvol.drag .pct{color:var(--ink)}
+@media(max-width:30rem){.player .in{grid-template-columns:minmax(0,1fr)}.player .ctl{flex-wrap:wrap}.pvol .pct{display:none}.player .ctl{gap:.3rem}.player .ctl button,.player .ctl a.psim{padding:.2rem .5rem}}
 @media(max-width:30rem){.player .ctl a.psim span{display:none}}
 @media(max-width:30rem){.player .ctl button.plike span{display:none}}
 .player .slot{grid-column:1/-1;min-width:0}
@@ -296,7 +309,7 @@ footer{margin-top:4rem;padding-top:1rem;border-top:1px solid var(--line);font-si
 <div class="player" id="player" hidden>
   <div class="in">
     <div class="now" id="pNow"></div>
-    <div class="ctl"><button type="button" id="pLike" class="plike" aria-pressed="false" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 8 3.3 4.5 6.9 4.5c2.1 0 3.6 1.2 5.1 3 1.5-1.8 3-3 5.1-3 3.6 0 5.5 3.5 4.2 6.8-1.8 4.6-9.3 9.2-9.3 9.2z"/></svg><span>Like</span></button><button type="button" id="pMore" class="plike" disabled title="More like the track playing now"><b style="font-size:1rem;line-height:.8">≈</b><span>More like this</span></button><a id="pSim" class="psim" href="#" target="lowlight-room" title="Claude finds mixes with the same vibe and energy as this one (opens the room)">≈ <span>Mixes like this</span></a><button type="button" id="pMc" aria-pressed="true">Mixcloud</button><button type="button" id="pMp3" aria-pressed="false">MP3</button><button type="button" id="pClose" aria-label="Close the player">✕</button></div>
+    <div class="ctl"><button type="button" id="pLike" class="plike" aria-pressed="false" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 8 3.3 4.5 6.9 4.5c2.1 0 3.6 1.2 5.1 3 1.5-1.8 3-3 5.1-3 3.6 0 5.5 3.5 4.2 6.8-1.8 4.6-9.3 9.2-9.3 9.2z"/></svg><span>Like</span></button><button type="button" id="pMore" class="plike" disabled title="More like the track playing now"><b style="font-size:1rem;line-height:.8">≈</b><span>More like this</span></button><a id="pSim" class="psim" href="#" target="lowlight-room" title="Claude finds mixes with the same vibe and energy as this one (opens the room)">≈ <span>Mixes like this</span></a><span class="pvol" id="pVol" role="slider" tabindex="0" aria-label="Volume" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" title="Volume: drag up or down, scroll, or use the arrow keys"><svg viewBox="0 0 36 36" aria-hidden="true"><path class="tr" id="pVolTr"/><path class="arc" id="pVolArc"/><circle class="cap" cx="18" cy="18" r="9.5"/><line class="ptr" id="pVolPtr" x1="18" y1="18" x2="18" y2="10"/></svg><span class="pct" id="pVolPct">100</span></span><button type="button" id="pMc" aria-pressed="true">Mixcloud</button><button type="button" id="pMp3" aria-pressed="false">MP3</button><button type="button" id="pClose" aria-label="Close the player">✕</button></div>
     <div class="slot" id="pSlot"></div>
   </div>
 </div>
@@ -768,6 +781,8 @@ var Player = {
     if (mode === 'mp3') {
       var au = this.audio = document.createElement('audio');
       au.controls = true; au.preload = 'metadata'; au.src = okUrl(m.mp3Url);
+      au.volume = Vol.v;
+      au.addEventListener('volumechange', function () { if (Player.audio !== au || Vol._own) return; Vol.v = au.muted ? 0 : au.volume; lsSet('lowlight-volume', String(Vol.v)); Vol.draw(); });
       au.addEventListener('timeupdate', function () { Player.tick(au.currentTime, !au.paused); });
       au.addEventListener('pause', function () { Log.flush(); });
       au.addEventListener('play', function () { if (Player.audio === au) OneTab.announce(); });
@@ -793,7 +808,7 @@ var Player = {
         });
       });
     }
-    this.paint();
+    this.paint(); Vol.draw();
   },
   play: function () { if (this.audio) this.audio.play().catch(function () {}); else if (this.widget) this.widget.play(); },
   seek: function (sec) {
@@ -877,6 +892,7 @@ var Player = {
     f.src = 'https://bandcamp.com/EmbeddedPlayer/' + (a.bc.type === 'track' ? 'track' : 'album') + '=' + a.bc.id + '/size=large/bgcol=1a1c28/linkcol=dba8c8/tracklist=false/artwork=small/transparent=true/';
     $('pSlot').replaceChildren(f);
     document.querySelectorAll('ol.albums li').forEach(function (li) { li.classList.toggle('now', +li.dataset.ai === i); });
+    Vol.draw();
     OneTab.announce();
   },
   // Another tab started playing: pause here (and drop any jump still being retried, which could restart playback).
@@ -933,6 +949,54 @@ function loadMcApi() {
   });
   return mcApiP;
 }
+// ------------------------------------------------------------ volume knob (the MP3 only: Mixcloud's and Bandcamp's players can't be controlled from outside)
+var Vol = {
+  v: (function () { var x = parseFloat(lsGet('lowlight-volume')); return isFinite(x) && x >= 0 && x <= 1 ? x : 1; })(),
+  live: function () { return !!(Player.audio && Player.mode === 'mp3'); },
+  pt: function (a, r) { var t = (a - 90) * Math.PI / 180; return (18 + r * Math.cos(t)).toFixed(2) + ' ' + (18 + r * Math.sin(t)).toFixed(2); },
+  arc: function (a0, a1) { return a1 - a0 < 0.5 ? '' : 'M' + this.pt(a0, 15) + ' A15 15 0 ' + (a1 - a0 > 180 ? 1 : 0) + ' 1 ' + this.pt(a1, 15); },
+  draw: function () {
+    var k = $('pVol'); if (!k) return;
+    var pc = Math.round(this.v * 100), a = -135 + this.v * 270, live = this.live();
+    $('pVolTr').setAttribute('d', this.arc(-135, 135));
+    $('pVolArc').setAttribute('d', this.arc(-135, a));
+    $('pVolPtr').setAttribute('transform', 'rotate(' + a.toFixed(1) + ' 18 18)');
+    $('pVolPct').textContent = pc;
+    k.setAttribute('aria-valuenow', pc);
+    k.setAttribute('aria-valuetext', pc + '%' + (live ? '' : ' (applies to the MP3)'));
+    k.classList.toggle('off', !live);
+    k.title = live ? 'Volume ' + pc + '%: drag up or down, scroll, or use the arrow keys'
+      : (Player.bc ? 'Bandcamp’s player has its own volume; this knob sets the MP3 volume' : 'Mixcloud’s player doesn’t allow its volume to be changed from this page; use your device volume, or switch to MP3 to use this knob');
+  },
+  set: function (v) {
+    v = Math.max(0, Math.min(1, Math.round(v * 100) / 100));
+    if (!this.live() && !this._told) { this._told = true; toast(Player.bc ? 'Bandcamp’s player has its own volume. This knob sets the MP3 volume.' : 'Mixcloud doesn’t let other pages change its volume. The knob sets the MP3 volume; use your device volume for Mixcloud.', 4200); }
+    this.v = v; lsSet('lowlight-volume', String(v));
+    this.apply(); this.draw();
+  },
+  apply: function () {
+    var au = Player.audio; if (!au) return;
+    this._own = true; au.volume = this.v; this._own = false;
+    // iPhone and iPad fix the volume of web audio to the device buttons.
+    if (this.v < 0.99 && au.volume > 0.99 && !this._ios) { this._ios = true; toast('This device sets the volume with its own buttons, so the knob can’t change it here.', 4200); }
+  }
+};
+(function () {
+  var k = $('pVol'); if (!k) return;
+  var drag = null;
+  k.addEventListener('pointerdown', function (e) { if (e.button) return; e.preventDefault(); k.focus(); drag = { y: e.clientY, x: e.clientX, v: Vol.v }; k.classList.add('drag'); try { k.setPointerCapture(e.pointerId); } catch (x) {} });
+  k.addEventListener('pointermove', function (e) { if (!drag) return; Vol.set(drag.v + ((drag.y - e.clientY) + (e.clientX - drag.x)) / 150); });
+  function end() { drag = null; k.classList.remove('drag'); }
+  k.addEventListener('pointerup', end); k.addEventListener('pointercancel', end);
+  k.addEventListener('wheel', function (e) { e.preventDefault(); Vol.set(Vol.v + (e.deltaY < 0 ? 0.05 : -0.05)); }, { passive: false });
+  k.addEventListener('keydown', function (e) {
+    var d = { ArrowUp: .05, ArrowRight: .05, ArrowDown: -.05, ArrowLeft: -.05, PageUp: .2, PageDown: -.2 }[e.key];
+    if (d != null) { e.preventDefault(); Vol.set(Vol.v + d); }
+    else if (e.key === 'Home') { e.preventDefault(); Vol.set(0); }
+    else if (e.key === 'End') { e.preventDefault(); Vol.set(1); }
+  });
+  Vol.draw();
+})();
 $('pMc').addEventListener('click', function () { if (Player.mix) Player.open(Player.mix, 'mc', Player.pos || null); });
 $('pMp3').addEventListener('click', function () { if (Player.mix) Player.open(Player.mix, 'mp3', Player.pos || null); });
 $('pClose').addEventListener('click', function () { Player.close(); });
