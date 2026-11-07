@@ -1,17 +1,15 @@
 {
- "lastCheck": "2026-11-06T05:03:37Z",
- "lastOk": "2026-11-06T05:03:37Z",
+ "lastCheck": "2026-11-07T04:57:18Z",
+ "lastOk": "2026-11-07T04:57:18Z",
  "ok": true,
- "lastResult": "620 mixes on the blog, 1 new (Influenza by Mark Cake & G9 LUV)",
+ "lastResult": "620 mixes on the blog, 0 new",
  "postsTotal": 620,
  "mixes": 620,
  "withTracklist": 563,
  "tracklistsFromComments": 1,
- "newThisRun": [
-  "2026-11-influenza-by-mark-cake-g9-luv"
- ],
+ "newThisRun": [],
  "mixcloudMatched": 512,
- "coversSaved": 1,
+ "coversSaved": 0,
  "notes": [],
  "albums": {
   "listed": 462,
