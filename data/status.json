@@ -1,15 +1,17 @@
 {
- "lastCheck": "2026-11-19T13:00:17Z",
- "lastOk": "2026-11-19T13:00:17Z",
+ "lastCheck": "2026-11-20T12:51:21Z",
+ "lastOk": "2026-11-20T12:51:21Z",
  "ok": true,
- "lastResult": "620 mixes on the blog, 0 new",
- "postsTotal": 620,
- "mixes": 620,
- "withTracklist": 563,
+ "lastResult": "621 mixes on the blog, 1 new (Sjunka Mix by Dött ljus)",
+ "postsTotal": 621,
+ "mixes": 621,
+ "withTracklist": 564,
  "tracklistsFromComments": 1,
- "newThisRun": [],
- "mixcloudMatched": 512,
- "coversSaved": 0,
+ "newThisRun": [
+  "2026-11-sjunka-mix-by-dott-ljus"
+ ],
+ "mixcloudMatched": 513,
+ "coversSaved": 1,
  "notes": [],
  "albums": {
   "listed": 462,
