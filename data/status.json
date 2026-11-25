@@ -1,15 +1,17 @@
 {
- "lastCheck": "2026-11-24T14:50:26Z",
- "lastOk": "2026-11-24T14:50:26Z",
+ "lastCheck": "2026-11-25T14:18:27Z",
+ "lastOk": "2026-11-25T14:18:27Z",
  "ok": true,
- "lastResult": "621 mixes on the blog, 0 new",
- "postsTotal": 621,
- "mixes": 621,
- "withTracklist": 564,
+ "lastResult": "622 mixes on the blog, 1 new (Dubby & Spacey)",
+ "postsTotal": 622,
+ "mixes": 622,
+ "withTracklist": 565,
  "tracklistsFromComments": 1,
- "newThisRun": [],
- "mixcloudMatched": 513,
- "coversSaved": 0,
+ "newThisRun": [
+  "2026-11-dubby-spacey"
+ ],
+ "mixcloudMatched": 514,
+ "coversSaved": 1,
  "notes": [],
  "albums": {
   "listed": 462,
